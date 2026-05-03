@@ -1,0 +1,50 @@
+Lunar Ice Intelligence
+Copyright 2026 Lunar Ice Intelligence
+
+Licensed under the Apache License, Version 2.0.
+
+---
+
+THIRD-PARTY DATA
+
+This project uses publicly available data from NASA's Lunar Reconnaissance
+Orbiter (LRO) mission. These datasets are in the public domain and provided
+by NASA's Planetary Data System (PDS):
+
+  Diviner Lunar Radiometer Experiment (DLRE)
+    Williams et al. (2019) JGR Planets — EPF dataset
+    Paige et al. (2010) Science 330 — PSR temperatures
+
+  Lunar Reconnaissance Orbiter Camera (LROC) Wide Angle Camera
+    Sato et al. (2014) JGR Planets — WAC photometry
+
+  Mini-RF Radar
+    Spudis et al. (2010) Geophysical Research Letters — CPR data
+
+  Lyman Alpha Mapping Project (LAMP)
+    Gladstone et al. (2010) Science 330 — UV signatures
+
+  LCROSS Impact Data
+    Colaprete et al. (2010) Science 330 — Cabeus H₂O confirmation
+
+  LOLA (Lunar Orbiter Laser Altimeter)
+    Mazarico et al. (2011) Icarus 211 — PSR catalog
+
+---
+
+SCIENTIFIC REFERENCES
+
+The thermal physics model implements methods described in:
+  Vasavada et al. (2012) JGR Planets — subsurface thermal profile
+  Hayne et al. (2015) JGR Planets — global hydration map
+
+Ice stability threshold (<110 K) from:
+  Paige et al. (2010) Science 330
+
+---
+
+THIRD-PARTY SOFTWARE
+
+This project depends on open-source libraries including PyTorch, FastAPI,
+React, and others listed in requirements.txt and frontend/package.json.
+Each library retains its own copyright and license.

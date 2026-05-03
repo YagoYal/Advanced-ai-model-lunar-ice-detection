@@ -1,0 +1,503 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{microtype}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{abstract}
+\usepackage{natbib}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{array}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!60!black,
+  citecolor=blue!60!black,
+  urlcolor=blue!60!black
+}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{gray!8},
+  frame=single,
+  rulecolor=\color{gray!40},
+  breaklines=true,
+  captionpos=b
+}
+
+\titleformat{\section}{\large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection.}{0.5em}{}
+
+\onehalfspacing
+
+% ---------------------------------------------------------------
+\title{%
+  \textbf{Lunar Ice Intelligence:}\\
+  Physics-Informed Deep Learning for Water Ice Detection\\
+  in Lunar Permanently Shadowed Regions
+}
+
+\author{
+  Yago Almeida da Silva\\
+  \small ORCID: \href{https://orcid.org/0009-0007-0094-0915}{0009-0007-0094-0915}\\
+  \small \texttt{yagoalcontact@gmail.com}
+}
+
+\date{May 2026 \\ \small Preprint — not peer-reviewed}
+% ---------------------------------------------------------------
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present \textit{Lunar Ice Intelligence}, an open-source platform for detecting
+water ice in lunar permanently shadowed regions (PSRs) using physics-informed deep
+learning. The system integrates real data from four NASA Lunar Reconnaissance Orbiter
+(LRO) instruments — Diviner, Mini-RF, LROC WAC, and LAMP — with a multimodal neural
+network (LunarCNN) that couples a convolutional image encoder with a physics-based
+subsurface thermal encoder. Labels are derived exclusively from independent
+instrument confirmations, avoiding the circularity common in PSR-based training sets.
+A Double Deep Q-Network (DQN) agent performs autonomous rover navigation, maximising
+ice probability while accounting for subsurface thermal state. On a benchmark of 14
+catalogued locations drawn from four published datasets, the model achieves 86\%
+accuracy (12/14), with all six negative controls correctly rejected and two lower-confidence
+PSRs (Nobile, Amundsen) missed (F1 = 0.997, Recall = 1.000, val\_loss = 0.0109
+on the validation set at 30 epochs). The platform
+exposes a FastAPI backend and an interactive React web interface for point-and-click
+ice probability analysis of the full 180$\times$360 lunar grid.
+\end{abstract}
+
+\vspace{0.5em}
+\noindent\textbf{Keywords:} lunar water ice, permanently shadowed regions,
+physics-informed neural network, deep reinforcement learning,
+Lunar Reconnaissance Orbiter, subsurface thermal modelling, autonomous rover.
+
+\hrule
+\vspace{1em}
+
+% ---------------------------------------------------------------
+\section{Introduction}
+
+The presence of water ice in lunar PSRs has been progressively confirmed by multiple
+independent instruments over the past two decades. The LCROSS impact experiment
+definitively detected H$_2$O in the Cabeus crater ejecta plume \citep{colaprete2010},
+while Diviner temperature measurements identified cold traps capable of preserving
+ice over geological timescales \citep{paige2010}. Complementary evidence was provided
+by Mini-RF circular polarisation ratio (CPR) anomalies \citep{spudis2010} and LAMP
+ultraviolet signatures \citep{gladstone2010}.
+
+Despite this multi-instrument convergence, existing detection approaches typically
+train models on PSR geometry alone, inadvertently reusing the same spatial prior used
+to define the labels — a circularity that inflates reported performance. Furthermore,
+few systems integrate subsurface thermal physics into the feature space, despite
+surface temperature being a poor proxy for ice stability at depth.
+
+This work addresses both limitations. We (1) construct labels using only
+instrument-direct measurements with no overlap with the PSR spatial prior, (2) encode
+subsurface temperature profiles derived from the Vasavada thermal diffusion model as
+explicit input features, and (3) couple the ice detection model with a reinforcement
+learning rover agent that uses subsurface state as part of its reward signal.
+
+% ---------------------------------------------------------------
+\section{Related Work}
+
+\citet{mazarico2011} provided the foundational PSR catalogue from LOLA illumination
+modelling. \citet{hayne2015} extended the Diviner analysis to a global hydration map.
+\citet{williams2019} published the EPF dataset, providing direct surface-emission
+temperature measurements inside PSRs. The thermal skin depth formulation used here
+follows \citet{vasavada2012}, with thermal diffusivity $\kappa = 4.7 \times 10^{-7}$
+m$^2$\,s$^{-1}$ appropriate for the uppermost lunar regolith.
+
+Machine learning approaches to planetary surface analysis have been applied to Mars
+and Moon imagery \citep{sato2014}, but physics-informed architectures integrating
+multi-instrument LRO data with subsurface modelling have not, to our knowledge, been
+previously published in open-source form.
+
+% ---------------------------------------------------------------
+\section{Data}
+
+\subsection{Grid and Coordinate Convention}
+
+All arrays use a global 180$\times$360 grid at 1$^\circ$/pixel. Grid indices
+$(i, j)$ map to geographic coordinates as:
+\begin{equation}
+  \phi = i - 90, \qquad \lambda = j - 180
+\end{equation}
+where $\phi \in [-90^\circ, 90^\circ]$ is latitude and $\lambda \in [-180^\circ,
+180^\circ]$ is longitude. This single coordinate convention is enforced across all
+pipeline modules to prevent label misalignment.
+
+\subsection{Instrument Datasets}
+
+\begin{table}[H]
+\centering
+\caption{LRO instrument data integrated in the pipeline.}
+\label{tab:data}
+\begin{tabular}{lllr}
+\toprule
+Instrument & Data product & Acquisition method & Size \\
+\midrule
+Diviner LRO  & Polar temperature     & vsicurl GeoTIFF, $|\phi| \geq 60^\circ$ & $\sim$260 KB\\
+Diviner EPF  & PSR direct temps      & PDS direct download       & $\sim$15 MB \\
+LROC WAC     & 32$\times$32 patches  & vsicurl USGS COG per PSR  & $\sim$1 MB  \\
+Mini-RF      & CPR polar radar       & HTTP range requests       & 59 MB       \\
+LAMP         & UV H$_2$O signature   & PDS FITS download         & $\sim$10 MB \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Selective streaming avoids downloading full-resolution global mosaics
+(typically $>$10 GB). Only polar strips ($|\phi| \geq 60^\circ$) are retrieved
+from Diviner; LROC patches are fetched per-PSR via Cloud-Optimised GeoTIFF
+(COG) range requests against the USGS tile server.
+
+\subsection{Label Construction}
+
+Labels are binary ($y \in \{0, 1\}$) and are derived from three independent
+instrument sources fused with per-source confidence weights:
+
+\begin{table}[H]
+\centering
+\caption{Label sources, confidence weights, and positive counts.}
+\label{tab:labels}
+\begin{tabular}{llrl}
+\toprule
+Source & Confidence & Positives & Reference \\
+\midrule
+LCROSS Cabeus impact    & 1.0 & 1      & \citet{colaprete2010} \\
+Diviner EPF direct      & 1.0 & $\sim$6 & \citet{williams2019} \\
+LAMP UV Shackleton      & 0.9 & 2      & \citet{gladstone2010} \\
+Mini-RF CPR $> 1.0$     & 0.8 & 14{,}655 & \citet{spudis2010}  \\
+Diviner cold trap       & 0.7 & $\sim$50 & \citet{paige2010}  \\
+\midrule
+\textbf{Total}          &     & \textbf{14{,}656} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+PSR geometry is used only to locate known confirmed sites, never as a positive
+label itself. This decouples the training signal from the spatial prior and
+prevents performance inflation through circularity.
+
+% ---------------------------------------------------------------
+\section{Model Architecture}
+
+\subsection{LunarCNN}
+
+The detection model is a three-branch multimodal network (Listing~\ref{lst:arch}):
+
+\paragraph{CNNEncoder.} Processes 64$\times$64 greyscale image patches through
+three Conv–BN–ReLU–MaxPool blocks (channels: 1$\to$16$\to$32$\to$64),
+followed by a fully-connected layer (4096$\to$128) producing a 128-dimensional feature vector.
+
+\paragraph{PhysicsEncoder.} Receives a 5-dimensional physics feature vector:
+\begin{equation}
+  \mathbf{f}_p = \bigl[S_\text{norm},\ \phi_\text{norm},\ T_{0.1},\ T_{0.5},\ T_{1.0}\bigr]
+\end{equation}
+where $S_\text{norm} = S/1361$ is insolation normalised to the solar constant,
+$\phi_\text{norm} = \phi/90$ is normalised latitude, and $T_{0.1}$, $T_{0.5}$,
+$T_{1.0}$ are subsurface temperatures at 0.1, 0.5, and 1.0 m depth (normalised).
+A three-layer MLP (5$\to$32$\to$64$\to$64, BatchNorm + ReLU) produces a
+64-dimensional output.
+
+\paragraph{FusionHead.} Concatenates the CNN (128-D) and physics (64-D) vectors
+into a 192-D representation, then applies a linear stack
+$192 \to 128 \to 64 \to 1$ with sigmoid activation to produce $\hat{p} = P(\text{ice})$.
+
+\begin{lstlisting}[language=Python, caption={LunarCNN forward pass (simplified).}, label=lst:arch]
+img_feat   = self.cnn_encoder(image)        # (B, 128)
+phys_feat  = self.physics_encoder(physics)  # (B, 64)
+fused      = torch.cat([img_feat, phys_feat], dim=1)  # (B, 192)
+p_ice      = self.fusion_head(fused)        # (B, 1)
+\end{lstlisting}
+
+\subsection{Subsurface Thermal Model}
+
+Subsurface temperature profiles follow the analytical solution to the one-dimensional
+thermal diffusion equation for a periodically forced surface \citep{vasavada2012}:
+\begin{equation}
+  T(z) = \bar{T} + \left(T_s - \bar{T}\right) \exp\!\left(-\frac{z}{z_\text{skin}}\right)
+\end{equation}
+where $T_s$ is the instantaneous surface temperature, $\bar{T}$ is the mean annual
+temperature, and the thermal skin depth is:
+\begin{equation}
+  z_\text{skin} = \sqrt{\frac{\kappa P}{\pi}} \approx 0.62\ \text{m}
+\end{equation}
+with $\kappa = 4.7 \times 10^{-7}$ m$^2$\,s$^{-1}$ and $P = 2.551 \times 10^6$ s
+(lunar synodic period). Surface temperature is derived from radiative equilibrium:
+\begin{equation}
+  T_s = \left(\frac{(1 - A)\,S\cos\theta + \epsilon\sigma T_\infty^4}{\epsilon\sigma}\right)^{1/4}
+\end{equation}
+with albedo $A = 0.12$, emissivity $\epsilon = 0.95$, and $T_\infty = 3$ K.
+Profiles are computed at 20 depth layers spanning 0–2 m and stored as
+\texttt{temperatura\_subsolo.npy} (shape $180 \times 360 \times 20$).
+
+\subsection{Training}
+
+\begin{itemize}
+  \item \textbf{Dataset:} 58{,}624 examples; 14{,}656 positives (25\%)
+  \item \textbf{Loss:} Weighted binary cross-entropy (handles class imbalance)
+  \item \textbf{Optimiser:} Adam, lr = $10^{-3}$
+  \item \textbf{Schedule:} CosineAnnealingLR
+  \item \textbf{Epochs:} 30 (configurable via \texttt{TRAIN\_EPOCHS})
+  \item \textbf{Uncertainty:} Monte Carlo Dropout (30 forward passes) for variance estimation
+\end{itemize}
+
+% ---------------------------------------------------------------
+\section{Autonomous Rover Navigation}
+
+\subsection{Markov Decision Process Formulation}
+
+The rover navigation task is cast as an episodic MDP with:
+
+\paragraph{State space ($\text{obs\_dim} = 6$):}
+\begin{equation}
+  \mathbf{s} = \bigl[\phi_n,\ \lambda_n,\ E_n,\ S_n,\ \hat{p}_\text{ice},\ T^{(0.5\text{m})}_n\bigr]
+\end{equation}
+where $\phi_n$, $\lambda_n$ are normalised grid coordinates, $E_n$ is normalised
+remaining energy, $S_n$ is normalised insolation, $\hat{p}_\text{ice}$ is the CNN
+ice probability, and $T^{(0.5\text{m})}_n$ is the normalised 0.5 m subsurface
+temperature at the current position.
+
+\paragraph{Action space:} Four discrete moves — North, South, East, West.
+
+\paragraph{Reward:}
+\begin{equation}
+  r = \Delta\hat{p}_\text{ice} - c_E\,\Delta E + r_\text{discover} + r_\text{subsurface}
+\end{equation}
+\begin{equation}
+  r_\text{subsurface} = \max\!\bigl(0,\ 1 - T^{(0.5\text{m})}_n\bigr) \times 0.4
+\end{equation}
+The subsurface bonus incentivises the agent to prefer cold-at-depth regions even
+when surface temperature is ambiguous — a physically motivated exploration prior.
+
+\subsection{Double DQN Agent}
+
+The agent uses Double Deep Q-Learning \citep{vanHasselt2016} with:
+\begin{itemize}
+  \item Experience replay buffer of 10{,}000 transitions
+  \item Target network with soft update: $\theta^- \leftarrow \tau\theta + (1-\tau)\theta^-$, $\tau = 0.005$
+  \item $\varepsilon$-greedy exploration with exponential decay over 5{,}000 steps
+  \item Q-network: MLP $6 \to 128 \to 128 \to 4$
+  \item Training: 500 episodes
+\end{itemize}
+
+% ---------------------------------------------------------------
+\section{Results}
+
+\subsection{Detection Performance}
+
+\begin{table}[H]
+\centering
+\caption{CNN training and validation metrics (30 epochs, CPU).}
+\label{tab:results}
+\begin{tabular}{lr}
+\toprule
+Metric & Value \\
+\midrule
+val\_loss & 0.0109 \\
+F1 score  & 0.997  \\
+Recall    & 1.000  \\
+Accuracy  & 0.998  \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Benchmark Against Published Catalogues}
+
+\begin{table}[H]
+\centering
+\caption{Benchmark on 14 catalogued locations from four publications.
+  \checkmark~= correct prediction; $\times$~= incorrect.}
+\label{tab:benchmark}
+\begin{tabular}{llccc}
+\toprule
+Location & Source & $\hat{p}$ & Expected & Result \\
+\midrule
+\multicolumn{5}{l}{\textit{South pole — confirmed ice}} \\
+Cabeus      & \citet{colaprete2010} & 0.983 & ICE & \checkmark \\
+Shackleton  & \citet{gladstone2010} & 1.000 & ICE & \checkmark \\
+Haworth     & \citet{spudis2010}    & 1.000 & ICE & \checkmark \\
+Nobile      & \citet{hayne2015}     & 0.000 & ICE & $\times$   \\
+Amundsen    & \citet{mazarico2011}  & 0.000 & ICE & $\times$   \\
+\midrule
+\multicolumn{5}{l}{\textit{North pole — confirmed ice}} \\
+Hermite     & \citet{paige2010}     & 1.000 & ICE & \checkmark \\
+Peary       & \citet{spudis2010}    & 1.000 & ICE & \checkmark \\
+Whipple     & \citet{mazarico2011}  & 1.000 & ICE & \checkmark \\
+\midrule
+\multicolumn{5}{l}{\textit{Negative controls — no ice}} \\
+Equator 0°N & —                     & 0.000 & NO ICE & \checkmark \\
+Mare Tranq. & \citet{sato2014}      & 0.000 & NO ICE & \checkmark \\
+Copernicus  & —                     & 0.000 & NO ICE & \checkmark \\
+Tycho       & —                     & 0.000 & NO ICE & \checkmark \\
+Mid-lat 40°N & —                    & 0.000 & NO ICE & \checkmark \\
+Mid-lat 40°S & —                    & 0.000 & NO ICE & \checkmark \\
+\midrule
+\textbf{Total} & & & & \textbf{12/14 (86\%)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Scientific Validation}
+
+Validation against 6 PSRs with known Diviner EPF measurements confirms that
+predicted probabilities are consistent with published surface temperatures and
+cold-trap stability criteria ($T < 110$ K, \citealt{paige2010}).
+
+The two benchmark failures (Nobile, $\hat{p} = 0.000$; Amundsen, $\hat{p} = 0.000$)
+are both lower-confidence PSRs (conf~$\leq 0.75$) located at non-extreme south-polar
+longitudes ($\lambda = +53.5^\circ$ and $+84.7^\circ$). Neither site has direct
+LCROSS, EPF, or LAMP confirmation; both rely on Diviner cold-trap modelling
+\citep{hayne2015} and LOLA illumination \citep{mazarico2011} alone. Their absence
+from the Mini-RF CPR label set (the dominant positive source at $\geq 60^\circ$ S)
+means the model has insufficient positive signal to generalise to these mid-longitude
+polar targets — a direct consequence of the Mini-RF polar strip coverage pattern.
+
+% ---------------------------------------------------------------
+\section{System Architecture}
+
+The platform consists of three layers:
+
+\paragraph{Backend (FastAPI).} Serves five endpoints with rate limiting (slowapi).
+The \texttt{/analisar} endpoint returns eight fields per query:
+\texttt{probabilidade\_gelo}, \texttt{variancia}, \texttt{confianca},
+\texttt{temperatura}, \texttt{temperatura\_subsolo[3]}, \texttt{insolacao},
+\texttt{insolacao\_atual}, \texttt{fase\_lunar}. Authentication uses
+\texttt{X-API-Key} headers with CSP and HSTS headers in production.
+
+\paragraph{Frontend (React + Leaflet).} A landing page with eight sections —
+including an interactive lunar map where the user clicks to trigger ice analysis —
+served via Vite at port 5173. Rover trajectories are drawn in real time as
+grid-to-degree converted polylines.
+
+\paragraph{Infrastructure.} Docker multi-stage build on \texttt{python:3.13-slim};
+GitHub Actions CI; data and model volumes persist across container rebuilds.
+
+% ---------------------------------------------------------------
+\section{Discussion}
+
+The 86\% benchmark accuracy (12/14) reflects a genuine model limitation rather than
+a calibration artefact. All six negative controls and six of eight PSRs are correctly
+classified; the two failures (Nobile, Amundsen) are the lowest-confidence PSRs in
+the catalogue (conf~$\leq 0.75$) and lack direct instrument confirmation beyond
+Diviner cold-trap modelling. The value of the system lies not in the aggregate
+benchmark figure but in (1) the absence of circular label construction, (2) the
+explicit physics encoding of subsurface temperature, and (3) the provision of
+per-prediction uncertainty via MC Dropout.
+
+The subsurface thermal bonus in the reward function of the DQN agent constitutes
+a physically motivated exploration prior. Regions cold at 0.5 m depth are
+preferentially visited even when surface albedo or insolation measurements are
+ambiguous — a heuristic directly grounded in ice stability theory \citep{paige2010}.
+
+A limitation of the current label set is the dominance of Mini-RF CPR positives
+(99.99\% of positives), whose confidence weight (0.8) is lower than direct
+EPF measurements. Future work should prioritise integrating additional Diviner EPF
+observations and LAMP count-rate maps to strengthen the high-confidence label pool.
+
+% ---------------------------------------------------------------
+\section{Conclusion}
+
+We have described Lunar Ice Intelligence, a physics-informed deep learning platform
+for lunar water ice detection. Key contributions are: a multimodal LunarCNN
+integrating image and subsurface thermal features; a label pipeline free of
+PSR-geometry circularity; a Double DQN rover agent with a physics-grounded
+subsurface reward; and an end-to-end open-source system from raw LRO data to
+interactive web interface. The software is released under the Apache License 2.0
+and archived with a CITATION.cff for reproducible citation.
+
+% ---------------------------------------------------------------
+\section*{Software Availability}
+
+Source code, trained weights (\texttt{pesos.pth}, \texttt{rl\_pesos.pth}),
+and data pipeline are available under the Apache License 2.0.
+Cite as: Almeida da Silva, Y. (2026). \textit{Lunar Ice Intelligence}.
+ORCID: \href{https://orcid.org/0009-0007-0094-0915}{0009-0007-0094-0915}.
+
+% ---------------------------------------------------------------
+\section*{Acknowledgements}
+
+The author acknowledges NASA's Planetary Data System (PDS) and the LRO science
+teams (Diviner, Mini-RF, LROC, LAMP) for making the datasets publicly available.
+
+% ---------------------------------------------------------------
+\begin{thebibliography}{99}
+
+\bibitem[Colaprete et al.(2010)]{colaprete2010}
+Colaprete, A., et al. (2010).
+Detection of Water in the LCROSS Ejecta Plume.
+\textit{Science}, 330, 463--468.
+\url{https://doi.org/10.1126/science.1186986}
+
+\bibitem[Gladstone et al.(2010)]{gladstone2010}
+Gladstone, G. R., et al. (2010).
+LAMP: The Lyman Alpha Mapping Project on the Lunar Reconnaissance Orbiter Mission.
+\textit{Science}, 330, 472--476.
+\url{https://doi.org/10.1126/science.1197874}
+
+\bibitem[Hayne et al.(2015)]{hayne2015}
+Hayne, P. O., et al. (2015).
+Evidence for Exposed Water Ice in the Moon's South Polar Regions from Lunar
+Reconnaissance Orbiter Ultraviolet Albedo and Temperature Measurements.
+\textit{Journal of Geophysical Research: Planets}, 120, 1599--1615.
+\url{https://doi.org/10.1002/2014JE004797}
+
+\bibitem[Mazarico et al.(2011)]{mazarico2011}
+Mazarico, E., et al. (2011).
+Illumination conditions of the lunar polar regions using LOLA topography.
+\textit{Icarus}, 211, 1066--1081.
+\url{https://doi.org/10.1016/j.icarus.2010.10.030}
+
+\bibitem[Paige et al.(2010)]{paige2010}
+Paige, D. A., et al. (2010).
+Diviner Lunar Radiometer Observations of Cold Traps in the Moon's South Polar Region.
+\textit{Science}, 330, 479--482.
+\url{https://doi.org/10.1126/science.1187726}
+
+\bibitem[Sato et al.(2014)]{sato2014}
+Sato, H., et al. (2014).
+Resolved Hapke parameter maps of the Moon.
+\textit{Journal of Geophysical Research: Planets}, 119, 1775--1805.
+\url{https://doi.org/10.1002/2013JE004580}
+
+\bibitem[Spudis et al.(2010)]{spudis2010}
+Spudis, P. D., et al. (2010).
+Initial results for the north pole of the Moon from Mini-RF, the Miniature Radio
+Frequency Radar.
+\textit{Geophysical Research Letters}, 37, L06204.
+\url{https://doi.org/10.1029/2009GL042259}
+
+\bibitem[van Hasselt et al.(2016)]{vanHasselt2016}
+van Hasselt, H., Guez, A., \& Silver, D. (2016).
+Deep Reinforcement Learning with Double Q-learning.
+\textit{Proceedings of the AAAI Conference on Artificial Intelligence}, 30(1).
+
+\bibitem[Vasavada et al.(2012)]{vasavada2012}
+Vasavada, A. R., et al. (2012).
+Lunar equatorial surface temperatures and regolith properties from the Diviner
+Lunar Radiometer Experiment.
+\textit{Journal of Geophysical Research: Planets}, 117, E00H18.
+\url{https://doi.org/10.1029/2011JE003987}
+
+\bibitem[Williams et al.(2019)]{williams2019}
+Williams, J.-P., et al. (2019).
+Diviner Lunar Radiometer Experiment eight-year special observation data record:
+Reduction in data gaps and improvements in calibration, spatial sampling, and
+noise.
+\textit{Journal of Geophysical Research: Planets}, 124, 2078--2088.
+\url{https://doi.org/10.1029/2018JE005803}
+
+\end{thebibliography}
+
+\end{document}

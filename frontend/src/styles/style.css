@@ -1,0 +1,94 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  background: #0a0f1e;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+section {
+  scroll-margin-top: 70px;
+}
+
+/* ── Grid background ── */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+
+/* ── Pulse animation ── */
+@keyframes pulse {
+  0%   { opacity: 0.4; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+/* ── Navbar responsive ── */
+.nav-hamburger { display: none; align-items: center; justify-content: center; }
+.nav-desktop-links { display: flex; }
+
+@media (max-width: 1024px) {
+  .nav-hamburger { display: flex; }
+  .nav-desktop-links { display: none; }
+}
+
+/* ── Lunar map responsive heights ── */
+.lunar-map { height: 280px; }
+
+@media (min-width: 768px) {
+  .lunar-map { height: 400px; }
+}
+
+@media (min-width: 1025px) {
+  .lunar-map { height: 520px; }
+}
+
+/* ── Metrics grid responsive ── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1024px) {
+  .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 767px) {
+  .metrics-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Chart container responsive min-height ── */
+.chart-container { min-height: 300px; }
+
+@media (max-width: 1024px) {
+  .chart-container { min-height: 250px; }
+}
+
+@media (max-width: 767px) {
+  .chart-container { min-height: 220px; }
+}
+
+/* ── Leaflet overrides (no layout interference) ── */
+.leaflet-container {
+  background: #0a0f1e;
+}

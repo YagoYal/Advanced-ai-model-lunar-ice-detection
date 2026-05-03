@@ -1,0 +1,98 @@
+# =========================
+# 📦 NODE (Frontend)
+# =========================
+node_modules/
+dist/
+build/
+.vite/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# =========================
+# 🐍 PYTHON (Backend / IA)
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Python env
+.env.python
+
+# =========================
+# 📊 DATA / MODELOS (IMPORTANTE)
+# =========================
+data/raw/
+data/processed/
+data/cache/
+
+# Modelos treinados
+*.pt
+*.pth
+*.h5
+*.ckpt
+*.joblib
+
+# Grandes arquivos
+*.npy
+*.npz
+*.csv
+*.parquet
+
+# =========================
+# 🧪 JUPYTER
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# 🧠 IDEs
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# 🚀 BUILD / DEPLOY
+# =========================
+*.log
+*.tmp
+*.cache
+
+# =========================
+# 🔐 SEGURANÇA
+# =========================
+secrets/
+credentials.json
+*.key
+
+# =========================
+# 🧾 MISC
+# =========================
+coverage/
+logs/*.log
+
+# =========================
+# 🔒 LOCAL / NÃO VERSIONAR
+# =========================
+.claude/
+context.md
+Notes-Advanced-ai-model-lunar-ice-detection-/
+paper.pdf
+paper.zip

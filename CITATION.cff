@@ -1,0 +1,106 @@
+cff-version: 1.2.0
+message: "If you use this software in your research, please cite it using the metadata below."
+title: "Lunar Ice Intelligence: AI-driven lunar water ice detection with physics-informed neural networks and autonomous rover navigation"
+authors:
+  - given-names: Yago
+    family-names: Almeida da Silva
+    email: yagoalcontact@gmail.com
+    orcid: "https://orcid.org/0009-0007-0094-0915"
+version: 1.0.0
+date-released: 2026-05-03
+license: Apache-2.0
+abstract: >
+  Lunar Ice Intelligence is a multimodal AI platform for detecting water ice
+  in lunar permanently shadowed regions (PSRs). It combines a physics-informed
+  convolutional neural network (LunarCNN) with subsurface thermal modeling
+  (Vasavada et al. 2012) and a Double DQN autonomous rover agent. Labels are
+  derived exclusively from independent instrument confirmations (LCROSS,
+  LAMP, Mini-RF, Diviner EPF) to avoid circularity. Real data from NASA's
+  Lunar Reconnaissance Orbiter (LRO) are processed via selective streaming.
+  The system serves a FastAPI backend and an interactive React web interface
+  for point-and-click ice probability analysis.
+keywords:
+  - lunar water ice
+  - permanently shadowed regions
+  - physics-informed neural network
+  - convolutional neural network
+  - deep reinforcement learning
+  - Double DQN
+  - subsurface thermal modeling
+  - Lunar Reconnaissance Orbiter
+  - Diviner
+  - Mini-RF
+  - LAMP
+  - LROC
+  - planetary science
+  - autonomous rover
+references:
+  - type: article
+    title: "Detection of Water in the LCROSS Ejecta Plume"
+    authors:
+      - family-names: Colaprete
+        given-names: Anthony
+    journal: Science
+    volume: 330
+    year: 2010
+    doi: "10.1126/science.1186986"
+  - type: article
+    title: "Diviner Lunar Radiometer Observations of Cold Traps in the Moon's South Polar Region"
+    authors:
+      - family-names: Paige
+        given-names: David A.
+    journal: Science
+    volume: 330
+    year: 2010
+    doi: "10.1126/science.1187726"
+  - type: article
+    title: "Lunar Reconnaissance Orbiter Camera (LROC) Instrument Overview"
+    authors:
+      - family-names: Sato
+        given-names: Hiroyuki
+    journal: Journal of Geophysical Research Planets
+    year: 2014
+    doi: "10.1002/2013JE004580"
+  - type: article
+    title: "Thermal conductivity of the upper lunar regolith from Diviner Lunar Radiometer Experiment observations"
+    authors:
+      - family-names: Vasavada
+        given-names: Ashwin R.
+    journal: Journal of Geophysical Research Planets
+    volume: 117
+    year: 2012
+    doi: "10.1029/2011JE003987"
+  - type: article
+    title: "Illumination conditions of the lunar polar regions using LOLA topography"
+    authors:
+      - family-names: Mazarico
+        given-names: Erwan
+    journal: Icarus
+    volume: 211
+    year: 2011
+    doi: "10.1016/j.icarus.2010.10.030"
+  - type: article
+    title: "Initial results for the north pole of the Moon from Mini-RF, the Miniature Radio Frequency Radar"
+    authors:
+      - family-names: Spudis
+        given-names: Paul D.
+    journal: Geophysical Research Letters
+    year: 2010
+    doi: "10.1029/2009GL042259"
+  - type: article
+    title: "Diviner Lunar Radiometer Experiment eight-year special observation data record"
+    authors:
+      - family-names: Williams
+        given-names: Jean-Pierre
+    journal: Journal of Geophysical Research Planets
+    year: 2019
+    doi: "10.1029/2018JE005803"
+  - type: article
+    title: "LAMP: The Lyman Alpha Mapping Project on the Lunar Reconnaissance Orbiter Mission"
+    authors:
+      - family-names: Gladstone
+        given-names: G. Randall
+    journal: Science
+    volume: 330
+    year: 2010
+    doi: "10.1126/science.1197874"

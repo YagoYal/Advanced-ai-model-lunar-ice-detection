@@ -1,0 +1,62 @@
+name: Docker CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Cache Docker layers
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Build Docker image
+        run: docker build -t lunar-backend .
+
+      - name: Test Python version
+        run: docker run --rm lunar-backend python --version
+
+      - name: Run unit tests
+        run: |
+          docker run --rm \
+            -e DATA_MODE=mock \
+            -e PYTHONPATH=/app \
+            lunar-backend \
+            python -m pytest -v --tb=short
+
+      - name: Scientific validation benchmark
+        run: |
+          docker run --rm \
+            -e DATA_MODE=real \
+            -e TRAIN_EPOCHS=5 \
+            -e PYTHONPATH=/app \
+            lunar-backend \
+            sh -c "python -m data.data_pipeline.generate_scientific_data --modo real && \
+                   python -m model.train && \
+                   python -m model.validate"
+
+      - name: Smoke test API
+        run: |
+          docker run -d -p 8000:8000 \
+            -e DATA_MODE=mock \
+            --name test \
+            lunar-backend
+          sleep 10
+          curl -f http://localhost:8000/health || (docker logs test && exit 1)
+          docker stop test
+          docker rm test
