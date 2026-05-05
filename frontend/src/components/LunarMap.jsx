@@ -22,6 +22,7 @@ export default function LunarMap({ onSelect, children }) {
     >
       <TileLayer
         url="https://trek.nasa.gov/tiles/Moon/EQ/LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0/default/default028mm/{z}/{y}/{x}.jpg"
+        tms={true}
       />
 
       <ClickHandler onClick={onSelect} />
