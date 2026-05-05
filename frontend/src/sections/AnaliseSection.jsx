@@ -139,6 +139,7 @@ export default function AnaliseSection() {
                 attribution="NASA Trek / LRO WAC"
                 minZoom={1}
                 maxZoom={7}
+                tms={true}
               />
               <MapResizer shouldResize={animDone} />
               <ClickHandler onClick={handleSelect} />
