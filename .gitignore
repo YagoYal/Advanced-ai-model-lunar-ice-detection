@@ -46,8 +46,13 @@ env/
 # 📊 DATA / MODELOS (IMPORTANTE)
 # =========================
 data/raw/
-data/processed/
+data/external/
 data/cache/
+data/processed/lro/mock/
+data/processed/lro/labels_*
+data/processed/lro/diviner_polar_grid_K.npy
+data/processed/lro/temperatura_K.npy
+data/processed/lro/metadata*.npy
 
 # Modelos treinados
 *.pt

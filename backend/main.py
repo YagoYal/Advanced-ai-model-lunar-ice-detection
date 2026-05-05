@@ -113,8 +113,8 @@ def carregar_mapas():
 
     except Exception as e:
         logger.warning("Usando mapas simulados: %s", e)
-        temp  = np.random.rand(64, 64).astype(np.float32)
-        insol = (np.random.rand(64, 64) * 1000).astype(np.float32)
+        temp  = np.random.rand(180, 360).astype(np.float32)
+        insol = (np.random.rand(180, 360) * 1000).astype(np.float32)
 
     # Mapa subsuperficial (H, W, 20) — opcional, fallback None
     subsolo_path = os.path.join(DATA_DIR, "temperatura_subsolo.npy")
