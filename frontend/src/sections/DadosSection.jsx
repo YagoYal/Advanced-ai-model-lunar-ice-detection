@@ -4,12 +4,13 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell,
 } from "recharts";
+import { useT } from "../i18n";
 
-const SOURCES = [
-  { name: "LROC WAC",    icon: "📸", color: "#38bdf8", desc: "Wide Angle Camera — Mosaico global 303ppd. Imageamento óptico da superfície lunar com resolução de ~100m/px." },
-  { name: "Diviner EPF", icon: "🌡️", color: "#818cf8", desc: "549.000 medições de temperatura termal. Identifica regiões criotérmicas permanentemente sombreadas (<110K)." },
-  { name: "Mini-RF CPR", icon: "📡", color: "#34d399", desc: "Radar de abertura sintética. CPR (Circular Polarization Ratio) 2560px — marcador de gelo subsuperficial." },
-  { name: "LAMP UV",     icon: "☀️", color: "#fbbf24", desc: "Lyman Alpha Mapping Project. Espectroscopia UV que detecta volatilização de gelo em eventos de impacto." },
+const SOURCES_META = [
+  { name: "LROC WAC",    icon: "📸", color: "#38bdf8" },
+  { name: "Diviner EPF", icon: "🌡️", color: "#818cf8" },
+  { name: "Mini-RF CPR", icon: "📡", color: "#34d399" },
+  { name: "LAMP UV",     icon: "☀️", color: "#fbbf24" },
 ];
 
 const LABEL_DATA = [
@@ -18,13 +19,7 @@ const LABEL_DATA = [
   { name: "CPR", value: 23, color: "#34d399" },
 ];
 
-const PIPELINE = [
-  { label: "Raw LROC / Diviner / Mini-RF", color: "#38bdf8" },
-  { label: "Reprojeção → 1°/px (180×360)", color: "#38bdf8" },
-  { label: "Features: [insol, lat, Tsub×3]", color: "#818cf8" },
-  { label: "Labels: PSR + EPF + CPR",       color: "#818cf8" },
-  { label: "Dataset: 58.624 exemplos",       color: "#34d399" },
-];
+const PIPELINE_COLORS = ["#38bdf8", "#38bdf8", "#818cf8", "#818cf8", "#34d399"];
 
 function DarkTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
@@ -36,6 +31,7 @@ function DarkTooltip({ active, payload }) {
 }
 
 export default function DadosSection() {
+  const { t } = useT();
   const ref = useRef(null);
   const inView = useInView(ref, { threshold: 0.15, once: true });
 
@@ -49,10 +45,10 @@ export default function DadosSection() {
         >
           <div style={{ textAlign: "center", marginBottom: 64 }}>
             <p style={{ color: "#fbbf24", fontSize: "0.85rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 12 }}>
-              Instrumentos LRO
+              {t.dados.label}
             </p>
             <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)", fontWeight: 700, color: "#e2e8f0" }}>
-              Fontes de Dados
+              {t.dados.title}
             </h2>
           </div>
 
@@ -62,7 +58,7 @@ export default function DadosSection() {
             gap: 18,
             marginBottom: 56,
           }}>
-            {SOURCES.map((src, i) => (
+            {SOURCES_META.map((src, i) => (
               <motion.div
                 key={src.name}
                 initial={{ opacity: 0, y: 20 }}
@@ -77,13 +73,12 @@ export default function DadosSection() {
               >
                 <div style={{ fontSize: "1.8rem", marginBottom: 12 }}>{src.icon}</div>
                 <h3 style={{ color: src.color, fontWeight: 600, fontSize: "0.95rem", marginBottom: 10 }}>{src.name}</h3>
-                <p style={{ color: "#64748b", fontSize: "0.83rem", lineHeight: 1.65 }}>{src.desc}</p>
+                <p style={{ color: "#64748b", fontSize: "0.83rem", lineHeight: 1.65 }}>{t.dados.sources[i].desc}</p>
               </motion.div>
             ))}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 28 }}>
-            {/* Recharts bar */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -91,7 +86,7 @@ export default function DadosSection() {
               style={{ padding: 24, borderRadius: 14, background: "rgba(15,23,42,0.85)", border: "1px solid #1e293b" }}
             >
               <p style={{ color: "#94a3b8", fontWeight: 600, marginBottom: 20, fontSize: "0.88rem" }}>
-                Composição dos Labels (%)
+                {t.dados.labelChartTitle}
               </p>
               <div className="chart-container">
                 <ResponsiveContainer width="100%" height={300}>
@@ -100,7 +95,7 @@ export default function DadosSection() {
                     <XAxis dataKey="name" tick={{ fill: "#94a3b8", fontSize: 12 }} axisLine={false} tickLine={false} />
                     <YAxis tick={{ fill: "#94a3b8", fontSize: 12 }} axisLine={false} tickLine={false} />
                     <Tooltip content={<DarkTooltip />} />
-                    <Bar dataKey="value" radius={[6, 6, 0, 0]} name="Composição">
+                    <Bar dataKey="value" radius={[6, 6, 0, 0]} name={t.dados.labelChartName}>
                       {LABEL_DATA.map(d => <Cell key={d.name} fill={d.color} />)}
                     </Bar>
                   </BarChart>
@@ -108,7 +103,6 @@ export default function DadosSection() {
               </div>
             </motion.div>
 
-            {/* Pipeline SVG */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -116,24 +110,24 @@ export default function DadosSection() {
               style={{ padding: 24, borderRadius: 14, background: "rgba(15,23,42,0.85)", border: "1px solid #1e293b" }}
             >
               <p style={{ color: "#94a3b8", fontWeight: 600, marginBottom: 20, fontSize: "0.88rem" }}>
-                Pipeline de Dados
+                {t.dados.pipelineTitle}
               </p>
-              <svg viewBox="0 0 300 290" width="100%" role="img" aria-label="Pipeline de dados">
+              <svg viewBox="0 0 300 290" width="100%" role="img" aria-label={t.dados.pipelineAriaLabel}>
                 <defs>
                   <marker id="arr-dados" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
                     <path d="M0,1 L6,3.5 L0,6" fill="none" stroke="#334155" strokeWidth="1.2" />
                   </marker>
                 </defs>
-                {PIPELINE.map((step, i) => {
+                {t.dados.pipeline.map((label, i) => {
                   const y = 28 + i * 58;
                   return (
-                    <g key={step.label}>
+                    <g key={i}>
                       <rect x={16} y={y - 18} width={268} height={36} rx={8}
-                        fill={`${step.color}16`} stroke={step.color} strokeWidth={1.2} />
-                      <text x={150} y={y + 5} textAnchor="middle" fill={step.color} fontSize={11} fontWeight={500}>
-                        {step.label}
+                        fill={`${PIPELINE_COLORS[i]}16`} stroke={PIPELINE_COLORS[i]} strokeWidth={1.2} />
+                      <text x={150} y={y + 5} textAnchor="middle" fill={PIPELINE_COLORS[i]} fontSize={11} fontWeight={500}>
+                        {label}
                       </text>
-                      {i < PIPELINE.length - 1 && (
+                      {i < t.dados.pipeline.length - 1 && (
                         <line x1={150} y1={y + 18} x2={150} y2={y + 40}
                           stroke="#334155" strokeWidth={1.4} markerEnd="url(#arr-dados)" />
                       )}

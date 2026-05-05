@@ -1,4 +1,5 @@
 import { Polyline, Marker, Popup } from "react-leaflet";
+import { useT } from "../i18n";
 
 // Converte índice de grade (0-179, 0-359) para graus Leaflet (-90..+90, -180..+180)
 function gridParaLatLon(pos) {
@@ -6,6 +7,7 @@ function gridParaLatLon(pos) {
 }
 
 export default function RoverPath({ caminho }) {
+  const { t } = useT();
   if (!caminho || caminho.length === 0) return null;
 
   const positions = caminho.map(p => gridParaLatLon(p.posicao));
@@ -22,14 +24,14 @@ export default function RoverPath({ caminho }) {
       />
       <Marker position={ultima}>
         <Popup>
-          Rover — posição final<br />
+          {t.roverPath.finalPosition}<br />
           Lat: {ultima[0].toFixed(1)}°  Lon: {ultima[1].toFixed(1)}°
         </Popup>
       </Marker>
       {melhor.probabilidade_gelo > 0.5 && (
         <Marker position={gridParaLatLon(melhor.posicao)}>
           <Popup>
-            Melhor PSR encontrado<br />
+            {t.roverPath.bestPSR}<br />
             Prob: {(melhor.probabilidade_gelo * 100).toFixed(1)}%
           </Popup>
         </Marker>

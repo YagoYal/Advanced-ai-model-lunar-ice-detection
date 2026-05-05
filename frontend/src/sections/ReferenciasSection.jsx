@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import { useT } from "../i18n";
 
 const REFS = [
   { authors: "Paige et al.",         year: "2010", journal: "Science 330",    title: "Diviner Lunar Radiometer Observations of Cold Traps in the Moon's South Polar Region" },
@@ -13,6 +14,7 @@ const REFS = [
 ];
 
 export default function ReferenciasSection() {
+  const { t } = useT();
   const ref = useRef(null);
   const inView = useInView(ref, { threshold: 0.15, once: true });
 
@@ -26,10 +28,10 @@ export default function ReferenciasSection() {
         >
           <div style={{ textAlign: "center", marginBottom: 60 }}>
             <p style={{ color: "#64748b", fontSize: "0.85rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 12 }}>
-              Literatura
+              {t.referencias.label}
             </p>
             <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)", fontWeight: 700, color: "#e2e8f0" }}>
-              Referências Científicas
+              {t.referencias.title}
             </h2>
           </div>
 
@@ -77,7 +79,7 @@ export default function ReferenciasSection() {
           </div>
 
           <div style={{ textAlign: "center", marginTop: 60, color: "#334155", fontSize: "0.78rem" }}>
-            Lunar Ice Intelligence · Advanced AI Model · {new Date().getFullYear()}
+            {t.referencias.footer} · {new Date().getFullYear()}
           </div>
         </motion.div>
       </div>

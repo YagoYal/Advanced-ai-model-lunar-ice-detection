@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useT } from "../i18n";
 
 export default function ScrollToTop() {
+  const { t } = useT();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function ScrollToTop() {
           whileTap={{ scale: 0.9 }}
           onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           type="button"
-          aria-label="Voltar ao topo"
+          aria-label={t.roverPath.scrollToTop}
           style={{
             position: "fixed",
             bottom: 32,

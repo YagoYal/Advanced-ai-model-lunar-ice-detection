@@ -5,6 +5,7 @@ import {
 } from "react-leaflet";
 import { analisar, simular } from "../services/api";
 import RoverPath from "../components/RoverPath";
+import { useT } from "../i18n";
 
 function coordParaGrid(lat, lng) {
   const gridLat = Math.max(0, Math.min(179, Math.round(lat + 90)));
@@ -35,6 +36,7 @@ function probColor(prob) {
 }
 
 export default function AnaliseSection() {
+  const { t } = useT();
   const ref = useRef(null);
   const inView = useInView(ref, { threshold: 0.15, once: true });
   const [animDone, setAnimDone] = useState(false);
@@ -51,8 +53,8 @@ export default function AnaliseSection() {
 
   useEffect(() => {
     if (inView && !animDone) {
-      const t = setTimeout(() => setAnimDone(true), 800);
-      return () => clearTimeout(t);
+      const timer = setTimeout(() => setAnimDone(true), 800);
+      return () => clearTimeout(timer);
     }
   }, [inView, animDone]);
 
@@ -71,11 +73,11 @@ export default function AnaliseSection() {
       setHistorico(prev => [...prev, { lat: lat.toFixed(2), lon: lng.toFixed(2), prob: data.probabilidade_gelo }]);
     } catch (err) {
       if (err.name === "AbortError") return;
-      setErro(err.message ?? "Falha ao conectar com o backend.");
+      setErro(err.message ?? t.analise.errorBackend);
     } finally {
       if (!signal.aborted) setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const handleSimularRover = async () => {
     if (!ponto) return;
@@ -86,7 +88,7 @@ export default function AnaliseSection() {
       const data = await simular(gridLat, gridLon, 20);
       setCaminho(data.caminho);
     } catch (err) {
-      setErro(err.message ?? "Falha ao simular rover.");
+      setErro(err.message ?? t.analise.errorRover);
     } finally {
       setLoadingRL(false);
     }
@@ -101,7 +103,6 @@ export default function AnaliseSection() {
   return (
     <section id="analise" ref={ref} style={{ scrollMarginTop: 70, padding: "100px 0" }}>
       <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 clamp(16px, 4vw, 64px)" }}>
-        {/* motion.div wraps content; MapContainer is child of a plain div — not direct child of motion.div */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -111,13 +112,13 @@ export default function AnaliseSection() {
         >
           <div style={{ textAlign: "center", marginBottom: 48 }}>
             <p style={{ color: "#38bdf8", fontSize: "0.85rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 12 }}>
-              Interativo
+              {t.analise.label}
             </p>
             <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)", fontWeight: 700, color: "#e2e8f0", marginBottom: 14 }}>
-              Análise ao Vivo
+              {t.analise.title}
             </h2>
             <p style={{ color: "#64748b", fontSize: "0.97rem" }}>
-              Clique na superfície lunar para analisar a probabilidade de gelo
+              {t.analise.instruction}
             </p>
           </div>
 
@@ -158,17 +159,16 @@ export default function AnaliseSection() {
             </MapContainer>
           </div>
 
-          {/* Status messages */}
           {(loading || loadingRL || erro) && (
             <div style={{ marginBottom: 20, textAlign: "center" }}>
               {loading && (
                 <p style={{ color: "#7dd3fc", fontSize: "0.9rem", animation: "pulse 1.5s infinite" }}>
-                  Analisando dados...
+                  {t.analise.loadingAnalysis}
                 </p>
               )}
               {loadingRL && (
                 <p style={{ color: "#7dd3fc", fontSize: "0.9rem", animation: "pulse 1.5s infinite" }}>
-                  Simulando rover...
+                  {t.analise.loadingRover}
                 </p>
               )}
               {erro && (
@@ -186,7 +186,6 @@ export default function AnaliseSection() {
             </div>
           )}
 
-          {/* Result card */}
           {result && (
             <div style={{
               padding: 28,
@@ -201,12 +200,12 @@ export default function AnaliseSection() {
               marginBottom: 20,
             }}>
               <h3 style={{ color: "#e2e8f0", fontWeight: 600, fontSize: "1.05rem", marginBottom: 22 }}>
-                Resultado da Análise
+                {t.analise.resultTitle}
               </h3>
 
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 18 }}>
                 <div>
-                  <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 6 }}>Probabilidade de Gelo</p>
+                  <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 6 }}>{t.analise.iceProb}</p>
                   <p style={{ fontSize: "2rem", fontWeight: 700, color: probColor(result.probabilidade_gelo), lineHeight: 1 }}>
                     {(result.probabilidade_gelo * 100).toFixed(2)}%
                   </p>
@@ -214,8 +213,10 @@ export default function AnaliseSection() {
 
                 {result.confianca != null && (
                   <div>
-                    <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 6 }}>Confiança</p>
-                    <p style={{ color: "#e2e8f0", fontWeight: 600 }}>{result.confianca}</p>
+                    <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 6 }}>{t.analise.confidence}</p>
+                    <p style={{ color: "#e2e8f0", fontWeight: 600 }}>
+                      {t.analise.confiancaMap[result.confianca] ?? result.confianca}
+                    </p>
                     {result.variancia != null && (
                       <p style={{ color: "#64748b", fontSize: "0.78rem" }}>var = {result.variancia.toFixed(4)}</p>
                     )}
@@ -224,19 +225,19 @@ export default function AnaliseSection() {
 
                 {result.temperatura != null && (
                   <div>
-                    <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 6 }}>Temp. Superfície</p>
+                    <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 6 }}>{t.analise.tempSurface}</p>
                     <p style={{ color: "#e2e8f0", fontWeight: 600 }}>{result.temperatura.toFixed(2)} K</p>
                   </div>
                 )}
 
                 {result.insolacao != null && (
                   <div>
-                    <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 6 }}>Insolação (média)</p>
+                    <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 6 }}>{t.analise.insolation}</p>
                     <p style={{ color: "#e2e8f0", fontWeight: 600 }}>{result.insolacao.toFixed(1)} W/m²</p>
                     {result.insolacao_atual != null && (
                       <p style={{ color: "#64748b", fontSize: "0.78rem" }}>
-                        atual: {result.insolacao_atual.toFixed(1)} W/m²
-                        {result.fase_lunar != null && ` · fase=${result.fase_lunar.toFixed(2)}`}
+                        {t.analise.insolCurrent}: {result.insolacao_atual.toFixed(1)} W/m²
+                        {result.fase_lunar != null && ` · ${t.analise.phase}=${result.fase_lunar.toFixed(2)}`}
                       </p>
                     )}
                   </div>
@@ -245,12 +246,12 @@ export default function AnaliseSection() {
 
               {result.temperatura_subsolo != null && (
                 <div style={{ marginTop: 18, padding: "12px 16px", background: "rgba(0,0,0,0.22)", borderRadius: 10 }}>
-                  <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 10 }}>Temperatura Subsolo (MC Dropout)</p>
+                  <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 10 }}>{t.analise.subsurfaceTemp}</p>
                   <div style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
-                    {result.temperatura_subsolo.map((t, i) => (
+                    {result.temperatura_subsolo.map((temp, i) => (
                       <div key={i}>
                         <span style={{ color: "#64748b", fontSize: "0.8rem" }}>{["0.1m", "0.5m", "1.0m"][i]}: </span>
-                        <span style={{ color: "#e2e8f0", fontWeight: 600 }}>{t.toFixed(1)} K</span>
+                        <span style={{ color: "#e2e8f0", fontWeight: 600 }}>{temp.toFixed(1)} K</span>
                       </div>
                     ))}
                   </div>
@@ -276,12 +277,11 @@ export default function AnaliseSection() {
                 onMouseEnter={e => { if (!loadingRL) e.currentTarget.style.transform = "translateY(-2px)"; }}
                 onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}
               >
-                {loadingRL ? "Simulando..." : "Simular Rover (20 passos)"}
+                {loadingRL ? t.analise.btnSimulating : t.analise.btnSimulate}
               </button>
             </div>
           )}
 
-          {/* Rover path summary */}
           {caminho && (
             <div style={{
               padding: 22,
@@ -291,28 +291,27 @@ export default function AnaliseSection() {
               marginBottom: 20,
             }}>
               <h3 style={{ color: "#e2e8f0", fontWeight: 600, fontSize: "0.97rem", marginBottom: 10 }}>
-                Trajetória do Rover
+                {t.analise.roverTitle}
               </h3>
               <p style={{ color: "#94a3b8", fontSize: "0.88rem", marginBottom: 8 }}>
-                {caminho.length} passos executados
+                {caminho.length} {t.analise.stepsExecuted}
               </p>
               {(() => {
                 const melhor = caminho.reduce((a, b) =>
                   (b.probabilidade_gelo ?? 0) > (a.probabilidade_gelo ?? 0) ? b : a, caminho[0]);
                 return melhor.probabilidade_gelo > 0 ? (
                   <p style={{ color: "#64748b", fontSize: "0.88rem" }}>
-                    Melhor ponto:{" "}
+                    {t.analise.bestPoint}{" "}
                     <strong style={{ color: probColor(melhor.probabilidade_gelo) }}>
                       {(melhor.probabilidade_gelo * 100).toFixed(1)}%
                     </strong>{" "}
-                    em grid [{melhor.posicao[0]}, {melhor.posicao[1]}]
+                    {t.analise.inGrid} [{melhor.posicao[0]}, {melhor.posicao[1]}]
                   </p>
                 ) : null;
               })()}
             </div>
           )}
 
-          {/* History */}
           {historico.length > 0 && (
             <div style={{
               padding: "18px 22px",
@@ -321,7 +320,7 @@ export default function AnaliseSection() {
               border: "1px solid rgba(255,255,255,0.06)",
             }}>
               <h3 style={{ color: "#64748b", fontWeight: 600, fontSize: "0.82rem", textTransform: "uppercase", letterSpacing: 1.5, marginBottom: 12 }}>
-                Pontos Analisados
+                {t.analise.pointsTitle}
               </h3>
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: 6 }}>
                 {historico.map((p, i) => (

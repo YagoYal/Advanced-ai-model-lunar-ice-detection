@@ -49,7 +49,7 @@ async def verificar_api_key(key: str = Security(_api_key_header)):
     if not API_KEY:
         return  # sem key configurada = sem auth (aviso no startup)
     if key != API_KEY:
-        raise HTTPException(status_code=403, detail="API key inválida ou ausente.")
+        raise HTTPException(status_code=403, detail="Invalid or missing API key.")
 
 if ENV == "production":
     if not API_KEY:
@@ -151,7 +151,7 @@ def validar_posicao(lat: int, lon: int) -> None:
     if not (0 <= lat < H and 0 <= lon < W):
         raise HTTPException(
             status_code=400,
-            detail=f"Posição inválida: ({lat}, {lon}) fora do mapa ({H}x{W})",
+            detail=f"Invalid position: ({lat}, {lon}) out of map bounds ({H}x{W})",
         )
 
 
@@ -252,7 +252,7 @@ def analisar(req: RequestAnalise, request: Request, _: None = Depends(verificar_
         raise
     except Exception:
         logger.exception("Erro em /analisar lat=%d lon=%d", req.lat, req.lon)
-        raise HTTPException(status_code=500, detail="Erro interno ao processar análise")
+        raise HTTPException(status_code=500, detail="Internal error processing analysis")
 
 
 # =========================
@@ -330,4 +330,4 @@ def predict(data: InputPredict, request: Request, _: None = Depends(verificar_ap
         return {"probabilidade_gelo": float(prob)}
     except Exception:
         logger.exception("Erro em /predict")
-        raise HTTPException(status_code=500, detail="Erro interno ao processar predição")
+        raise HTTPException(status_code=500, detail="Internal error processing prediction")

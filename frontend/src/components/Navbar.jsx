@@ -1,18 +1,20 @@
 import { useState, useEffect } from "react";
-
-const LINKS = [
-  { href: "#sobre", label: "Sobre" },
-  { href: "#arquitetura", label: "Arquitetura" },
-  { href: "#ciencia", label: "Ciência" },
-  { href: "#dados", label: "Dados" },
-  { href: "#analise", label: "Análise" },
-  { href: "#rover", label: "Rover RL" },
-  { href: "#referencias", label: "Referências" },
-];
+import { useT } from "../i18n";
 
 export default function Navbar() {
+  const { t, lang, toggleLang } = useT();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+
+  const LINKS = [
+    { href: "#sobre",       label: t.nav.sobre },
+    { href: "#arquitetura", label: t.nav.arquitetura },
+    { href: "#ciencia",     label: t.nav.ciencia },
+    { href: "#dados",       label: t.nav.dados },
+    { href: "#analise",     label: t.nav.analise },
+    { href: "#rover",       label: t.nav.rover },
+    { href: "#referencias", label: t.nav.referencias },
+  ];
 
   useEffect(() => {
     const onScroll = () => {
@@ -24,6 +26,32 @@ export default function Navbar() {
   }, []);
 
   const close = () => setOpen(false);
+
+  const LangToggle = ({ style }) => (
+    <button
+      type="button"
+      onClick={toggleLang}
+      style={{
+        background: "none",
+        border: "1px solid rgba(255,255,255,0.13)",
+        borderRadius: 20,
+        cursor: "pointer",
+        padding: "4px 11px",
+        display: "flex",
+        alignItems: "center",
+        gap: 4,
+        fontSize: "0.76rem",
+        fontWeight: 700,
+        letterSpacing: 0.5,
+        lineHeight: 1,
+        ...style,
+      }}
+    >
+      <span style={{ color: lang === "en" ? "#38bdf8" : "#475569" }}>EN</span>
+      <span style={{ color: "#334155" }}>|</span>
+      <span style={{ color: lang === "pt" ? "#38bdf8" : "#475569" }}>PT</span>
+    </button>
+  );
 
   return (
     <nav style={{
@@ -79,34 +107,39 @@ export default function Navbar() {
               </a>
             </li>
           ))}
+          <li>
+            <LangToggle />
+          </li>
         </ul>
 
-        <button
-          type="button"
-          className="nav-hamburger"
-          onClick={() => setOpen(o => !o)}
-          aria-label={open ? "Fechar menu" : "Abrir menu"}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            padding: 8,
-            color: "#94a3b8",
-          }}
-        >
-          {open ? (
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          ) : (
-            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <line x1="3" y1="6" x2="21" y2="6" />
-              <line x1="3" y1="12" x2="21" y2="12" />
-              <line x1="3" y1="18" x2="21" y2="18" />
-            </svg>
-          )}
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button
+            type="button"
+            className="nav-hamburger"
+            onClick={() => setOpen(o => !o)}
+            aria-label={open ? t.nav.closeMenu : t.nav.openMenu}
+            style={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 8,
+              color: "#94a3b8",
+            }}
+          >
+            {open ? (
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            ) : (
+              <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            )}
+          </button>
+        </div>
       </div>
 
       {open && (
@@ -136,6 +169,9 @@ export default function Navbar() {
               {l.label}
             </a>
           ))}
+          <div style={{ padding: "14px 24px", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+            <LangToggle />
+          </div>
         </div>
       )}
     </nav>

@@ -4,6 +4,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
+import { useT } from "../i18n";
 
 const CONVERGENCE = [
   { episode: 100, reward: 136, ice_max: 0.720 },
@@ -11,13 +12,6 @@ const CONVERGENCE = [
   { episode: 300, reward: 161, ice_max: 1.000 },
   { episode: 400, reward: 163, ice_max: 1.000 },
   { episode: 500, reward: 165, ice_max: 1.000 },
-];
-
-const MDP_ITEMS = [
-  { label: "Estado (obs_dim=6)",  desc: "lat_n, lon_n, energia_n, insol_n, prob_gelo, temp_sub_n" },
-  { label: "Ações",               desc: "N, S, E, W (4 direções cardinais)" },
-  { label: "Reward",              desc: "5 termos — ver Função de Reward Completa abaixo" },
-  { label: "γ (desconto)",        desc: "0.99 — horizonte longo favorece PSRs distantes" },
 ];
 
 function DarkTooltip({ active, payload, label }) {
@@ -35,6 +29,7 @@ function DarkTooltip({ active, payload, label }) {
 }
 
 export default function RoverSection() {
+  const { t } = useT();
   const ref = useRef(null);
   const inView = useInView(ref, { threshold: 0.15, once: true });
 
@@ -48,15 +43,14 @@ export default function RoverSection() {
         >
           <div style={{ textAlign: "center", marginBottom: 64 }}>
             <p style={{ color: "#818cf8", fontSize: "0.85rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 12 }}>
-              Reinforcement Learning
+              {t.rover.label}
             </p>
             <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)", fontWeight: 700, color: "#e2e8f0" }}>
-              Rover RL
+              {t.rover.title}
             </h2>
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 28, alignItems: "stretch" }}>
-            {/* MDP / DQN description */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={inView ? { opacity: 1, x: 0 } : {}}
@@ -70,10 +64,10 @@ export default function RoverSection() {
                 border: "1px solid rgba(129,140,248,0.2)",
               }}>
                 <h3 style={{ color: "#818cf8", fontWeight: 600, fontSize: "0.95rem", marginBottom: 18 }}>
-                  MDP — Processo de Decisão de Markov
+                  {t.rover.mdpTitle}
                 </h3>
                 <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {MDP_ITEMS.map(item => (
+                  {t.rover.mdpItems.map(item => (
                     <div key={item.label} style={{ padding: "12px 14px", background: "rgba(0,0,0,0.2)", borderRadius: 8 }}>
                       <p style={{ color: "#94a3b8", fontWeight: 600, fontSize: "0.83rem", marginBottom: 4 }}>{item.label}</p>
                       <p style={{ color: "#64748b", fontSize: "0.8rem" }}>{item.desc}</p>
@@ -89,12 +83,10 @@ export default function RoverSection() {
                 border: "1px solid rgba(56,189,248,0.18)",
               }}>
                 <h3 style={{ color: "#38bdf8", fontWeight: 600, fontSize: "0.88rem", marginBottom: 12 }}>
-                  DQN — Double Q-Learning
+                  {t.rover.dqnTitle}
                 </h3>
                 <p style={{ color: "#64748b", fontSize: "0.83rem", lineHeight: 1.7 }}>
-                  Rede separada para seleção e avaliação de ações (Double DQN).
-                  Experience replay com buffer de 10.000 transições.
-                  ε-greedy 1.0→0.01. Target network atualizada a cada 100 steps.
+                  {t.rover.dqnDesc}
                 </p>
               </div>
 
@@ -105,7 +97,7 @@ export default function RoverSection() {
                 border: "1px solid rgba(52,211,153,0.18)",
               }}>
                 <h3 style={{ color: "#34d399", fontWeight: 600, fontSize: "0.88rem", marginBottom: 16 }}>
-                  Função de Reward Completa
+                  {t.rover.rewardTitle}
                 </h3>
                 <code style={{
                   display: "block",
@@ -120,19 +112,10 @@ export default function RoverSection() {
                   overflowX: "auto",
                   whiteSpace: "pre",
                 }}>
-{`R = prob_gelo × 2.0
-  + Δice × 1.0
-  + bonus_exploração × 0.3
-  + max(0, 1 − temp_sub_n) × 0.4
-  − custo × 0.1`}
+                  {t.rover.rewardCode}
                 </code>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {[
-                    { term: "Δice",            def: "max(0, prob_gelo − ice_max_anterior × 0.9)" },
-                    { term: "bonus_exploração", def: "0.3 se célula não visitada, senão 0" },
-                    { term: "temp_sub_n",       def: "T_subsolo[1m] / 300K  (0=frio, 1=quente)" },
-                    { term: "custo",            def: "1.0 + (1 − insol/1361) × 0.5  [1.0–1.5/passo]" },
-                  ].map(({ term, def }) => (
+                  {t.rover.rewardTerms.map(({ term, def }) => (
                     <div key={term} style={{ display: "flex", gap: 8, fontSize: "0.78rem" }}>
                       <span style={{ color: "#34d399", fontFamily: "monospace", flexShrink: 0, minWidth: "min(130px, 30%)" }}>{term}</span>
                       <span style={{ color: "#64748b" }}>{def}</span>
@@ -142,7 +125,6 @@ export default function RoverSection() {
               </div>
             </motion.div>
 
-            {/* Convergence chart */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={inView ? { opacity: 1, x: 0 } : {}}
@@ -157,7 +139,7 @@ export default function RoverSection() {
               }}
             >
               <p style={{ color: "#94a3b8", fontWeight: 600, marginBottom: 20, fontSize: "0.88rem" }}>
-                Convergência do Treinamento RL
+                {t.rover.convergenceTitle}
               </p>
               <div style={{ flex: 1, minHeight: "clamp(220px, 40vh, 300px)" }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -168,7 +150,7 @@ export default function RoverSection() {
                       tick={{ fill: "#94a3b8", fontSize: 11 }}
                       axisLine={false}
                       tickLine={false}
-                      label={{ value: "Episódio", position: "insideBottom", offset: -8, fill: "#64748b", fontSize: 11 }}
+                      label={{ value: t.rover.episodeLabel, position: "insideBottom", offset: -8, fill: "#64748b", fontSize: 11 }}
                     />
                     <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
                     <Tooltip content={<DarkTooltip />} />
@@ -179,7 +161,7 @@ export default function RoverSection() {
                       stroke="#38bdf8"
                       strokeWidth={2.5}
                       dot={{ fill: "#38bdf8", r: 4 }}
-                      name="Reward médio"
+                      name={t.rover.rewardAvgLabel}
                     />
                     <Line
                       type="monotone"
@@ -199,4 +181,3 @@ export default function RoverSection() {
     </section>
   );
 }
-

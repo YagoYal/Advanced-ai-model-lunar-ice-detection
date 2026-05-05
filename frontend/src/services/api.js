@@ -1,6 +1,6 @@
 const IS_DEV = import.meta.env.DEV;
 const API_URL = import.meta.env.VITE_API_URL ||
-  (IS_DEV ? "http://localhost:8000" : (() => { throw new Error("VITE_API_URL não definida em produção"); })());
+  (IS_DEV ? "http://localhost:8000" : (() => { throw new Error("VITE_API_URL is not defined in production"); })());
 
 if (!IS_DEV && API_URL.startsWith("http://")) {
   console.warn("[security] VITE_API_URL usa HTTP em produção — use HTTPS.");
@@ -18,7 +18,7 @@ export async function analisar(lat, lon, signal) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail ?? `Erro HTTP ${res.status}`);
+    throw new Error(err.detail ?? `HTTP error ${res.status}`);
   }
   return res.json();
 }
@@ -31,7 +31,7 @@ export async function simular(lat, lon, passos = 10) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail ?? `Erro HTTP ${res.status}`);
+    throw new Error(err.detail ?? `HTTP error ${res.status}`);
   }
   return res.json();
 }
@@ -44,7 +44,7 @@ export async function analisarComMapa(lat, lon) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail ?? `Erro HTTP ${res.status}`);
+    throw new Error(err.detail ?? `HTTP error ${res.status}`);
   }
   return res.json();
 }

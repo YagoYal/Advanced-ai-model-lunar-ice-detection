@@ -1,16 +1,18 @@
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
+import { useT } from "../i18n";
 
 const LAYERS = [
-  { name: "NASA Data",  tech: "LROC WAC · Diviner EPF · Mini-RF CPR · LAMP UV",           color: "#38bdf8" },
-  { name: "Pipeline",   tech: "NumPy · Rasterio · Astropy · dataset.py",                   color: "#38bdf8" },
-  { name: "CNN+Physics",tech: "PyTorch · LunarCNN · Vasavada 2012 · MC Dropout",           color: "#818cf8" },
-  { name: "Backend",    tech: "FastAPI · Uvicorn · Slowapi · Pydantic",                     color: "#818cf8" },
-  { name: "Frontend",   tech: "React · Vite · Leaflet · Recharts · Framer Motion",         color: "#34d399" },
-  { name: "Rover RL",   tech: "DQN · Double Q-learning · obs_dim=6 · reward~165",          color: "#34d399" },
+  { name: "NASA Data",   tech: "LROC WAC · Diviner EPF · Mini-RF CPR · LAMP UV",          color: "#38bdf8" },
+  { name: "Pipeline",    tech: "NumPy · Rasterio · Astropy · dataset.py",                  color: "#38bdf8" },
+  { name: "CNN+Physics", tech: "PyTorch · LunarCNN · Vasavada 2012 · MC Dropout",          color: "#818cf8" },
+  { name: "Backend",     tech: "FastAPI · Uvicorn · Slowapi · Pydantic",                    color: "#818cf8" },
+  { name: "Frontend",    tech: "React · Vite · Leaflet · Recharts · Framer Motion",        color: "#34d399" },
+  { name: "Rover RL",    tech: "DQN · Double Q-learning · obs_dim=6 · reward~165",         color: "#34d399" },
 ];
 
 export default function ArquiteturaSection() {
+  const { t } = useT();
   const ref = useRef(null);
   const inView = useInView(ref, { threshold: 0.15, once: true });
 
@@ -29,14 +31,13 @@ export default function ArquiteturaSection() {
         >
           <div style={{ textAlign: "center", marginBottom: 60 }}>
             <p style={{ color: "#818cf8", fontSize: "0.85rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 12 }}>
-              Sistema
+              {t.arquitetura.label}
             </p>
             <h2 style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)", fontWeight: 700, color: "#e2e8f0" }}>
-              Arquitetura
+              {t.arquitetura.title}
             </h2>
           </div>
 
-          {/* Flow diagram */}
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={inView ? { opacity: 1, scale: 1 } : {}}
@@ -48,7 +49,7 @@ export default function ArquiteturaSection() {
               width="100%"
               style={{ minWidth: "min(520px, 100%)", display: "block" }}
               role="img"
-              aria-label="Diagrama de fluxo da arquitetura"
+              aria-label={t.arquitetura.ariaLabel}
             >
               <defs>
                 <marker id="arr-arch" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
@@ -72,7 +73,7 @@ export default function ArquiteturaSection() {
                       {layer.name}
                     </text>
                     <text x={x + BOX_W / 2} y={cy + 12} textAnchor="middle" fill="#64748b" fontSize={8.5}>
-                      {["Dados", "Pipeline", "Modelo", "API", "UI", "RL"][i]}
+                      {t.arquitetura.layerLabels[i]}
                     </text>
                     {i < LAYERS.length - 1 && (
                       <line
@@ -88,7 +89,6 @@ export default function ArquiteturaSection() {
             </svg>
           </motion.div>
 
-          {/* Stack cards */}
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",

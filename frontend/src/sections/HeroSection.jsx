@@ -1,13 +1,18 @@
 import { motion } from "framer-motion";
+import { useT } from "../i18n";
 
-const METRICS = [
-  { label: "F1 Score", value: "0.997" },
-  { label: "PSRs Validados", value: "6/6" },
-  { label: "Val Loss", value: "0.0101" },
-  { label: "Recall", value: "1.000" },
-];
+const METRIC_VALUES = ["0.997", "6/6", "0.0101", "1.000"];
 
 export default function HeroSection() {
+  const { t } = useT();
+
+  const metrics = [
+    { label: "F1 Score",           value: METRIC_VALUES[0] },
+    { label: t.hero.validatedPSRs, value: METRIC_VALUES[1] },
+    { label: "Val Loss",           value: METRIC_VALUES[2] },
+    { label: "Recall",             value: METRIC_VALUES[3] },
+  ];
+
   return (
     <section id="hero" style={{ scrollMarginTop: 70 }}>
       <div style={{
@@ -53,7 +58,7 @@ export default function HeroSection() {
               fontWeight: 600,
               letterSpacing: 0.5,
             }}>
-              CNN + Física Subsuperficial + Reinforcement Learning
+              {t.hero.badge}
             </span>
           </motion.div>
 
@@ -77,8 +82,8 @@ export default function HeroSection() {
             margin: "0 auto 44px",
             lineHeight: 1.75,
           }}>
-            Detecção de gelo subsuperficial lunar via redes neurais com física integrada.
-            LRO/NASA · Vasavada 2012 thermal model · DQN rover autonomy.
+            {t.hero.subtitle}<br />
+            {t.hero.subtext}
           </p>
 
           <div style={{ display: "flex", gap: 14, justifyContent: "center", flexWrap: "wrap" }}>
@@ -98,7 +103,7 @@ export default function HeroSection() {
               onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(56,189,248,0.4)"; }}
               onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
             >
-              Analisar Gelo
+              {t.hero.btnAnalyze}
             </a>
             <a
               href="#ciencia"
@@ -117,7 +122,7 @@ export default function HeroSection() {
               onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.1)")}
               onMouseLeave={e => (e.currentTarget.style.background = "rgba(255,255,255,0.05)")}
             >
-              Ver Ciência
+              {t.hero.btnScience}
             </a>
           </div>
 
@@ -133,7 +138,7 @@ export default function HeroSection() {
               flexWrap: "wrap",
             }}
           >
-            {METRICS.map(m => (
+            {metrics.map(m => (
               <div key={m.label} style={{ textAlign: "center" }}>
                 <div style={{ fontSize: "clamp(1.6rem, 3vw, 2rem)", fontWeight: 700, color: "#38bdf8" }}>
                   {m.value}
