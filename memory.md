@@ -61,6 +61,8 @@ probabilidade_gelo, variancia, confianca, temperatura, temperatura_subsolo[3], i
 - Gunicorn: `-w 1` (512MB RAM; 2 workers = OOM com PyTorch)
 - railway.json: enums maiúsculos obrigatórios (DOCKERFILE, ON_FAILURE)
 - Vercel: Root Directory = `frontend` (sem isso bundleia PyTorch como Lambda → 7GB, falha)
+- Vercel SPA routing: `vercel.json` precisa de `rewrites [{"source":"/(.*)","destination":"/index.html"}]`
+- NASA Trek tiles: formato TMS (Y invertido) → TileLayer precisa de `tms={true}`; URL correta: `LRO_WAC_Mosaic_Global_303ppd_v02` (100m=404)
 - Configs locais sensíveis: deploy-config.txt (gitignored)
 
 ## Regras permanentes
