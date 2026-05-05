@@ -24,10 +24,10 @@ ENV LOG_LEVEL=info
 
 EXPOSE 8000
 
-CMD ["gunicorn", "backend.main:app", \
-     "-w", "2", \
-     "-k", "uvicorn.workers.UvicornWorker", \
-     "--bind", "0.0.0.0:8000", \
-     "--timeout", "120", \
-     "--log-level", "info", \
-     "--access-logfile", "-"]
+CMD gunicorn backend.main:app \
+    -w 1 \
+    -k uvicorn.workers.UvicornWorker \
+    --bind "0.0.0.0:${PORT:-8000}" \
+    --timeout 120 \
+    --log-level info \
+    --access-logfile -
