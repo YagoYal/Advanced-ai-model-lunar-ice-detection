@@ -82,7 +82,7 @@ export default function App() {
       <h1>Lunar Ice Intelligence</h1>
       <p>Clique na superfície da Lua para analisar presença de gelo</p>
 
-      <MapContainer center={[0, 0]} zoom={2} style={{ height: 400 }}>
+      <MapContainer center={[0, 0]} zoom={2} style={{ height: "clamp(280px, 50vh, 520px)" }}>
         <TileLayer
           url="https://trek.nasa.gov/tiles/Moon/EQ/LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0/default/default028mm/{z}/{y}/{x}.jpg"
           attribution="NASA Trek / LRO WAC"

@@ -17,7 +17,7 @@ export default function LunarMap({ onSelect, children }) {
     <MapContainer
       center={[0, 0]}
       zoom={2}
-      style={{ height: 400 }}
+      style={{ height: "clamp(280px, 50vh, 520px)" }}
       whenCreated={setMap}
     >
       <TileLayer

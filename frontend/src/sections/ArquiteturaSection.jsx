@@ -46,7 +46,7 @@ export default function ArquiteturaSection() {
             <svg
               viewBox={`0 0 ${totalW + 40} 80`}
               width="100%"
-              style={{ minWidth: 520, display: "block" }}
+              style={{ minWidth: "min(520px, 100%)", display: "block" }}
               role="img"
               aria-label="Diagrama de fluxo da arquitetura"
             >

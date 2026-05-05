@@ -134,7 +134,7 @@ export default function RoverSection() {
                     { term: "custo",            def: "1.0 + (1 − insol/1361) × 0.5  [1.0–1.5/passo]" },
                   ].map(({ term, def }) => (
                     <div key={term} style={{ display: "flex", gap: 8, fontSize: "0.78rem" }}>
-                      <span style={{ color: "#34d399", fontFamily: "monospace", flexShrink: 0, minWidth: 130 }}>{term}</span>
+                      <span style={{ color: "#34d399", fontFamily: "monospace", flexShrink: 0, minWidth: "min(130px, 30%)" }}>{term}</span>
                       <span style={{ color: "#64748b" }}>{def}</span>
                     </div>
                   ))}
@@ -159,7 +159,7 @@ export default function RoverSection() {
               <p style={{ color: "#94a3b8", fontWeight: 600, marginBottom: 20, fontSize: "0.88rem" }}>
                 Convergência do Treinamento RL
               </p>
-              <div style={{ flex: 1, minHeight: 300 }}>
+              <div style={{ flex: 1, minHeight: "clamp(220px, 40vh, 300px)" }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={CONVERGENCE} margin={{ top: 8, right: 16, left: -10, bottom: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
