@@ -54,6 +54,8 @@ async def verificar_api_key(key: str = Security(_api_key_header)):
 
 if ENV == "production":
     app.add_middleware(HTTPSRedirectMiddleware)
+    if not API_KEY:
+        logger.warning("API_KEY não definida em produção — todos os requests serão aceitos sem autenticação.")
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
