@@ -53,6 +53,16 @@ probabilidade_gelo, variancia, confianca, temperatura, temperatura_subsolo[3], i
 - CNNEncoder: input real = 64×64 (FC=64×8×8=4096→128); comentários antigos 32×32 corrigidos
 - benchmark.py: 64×64 + 5 features (features_subsolo) — versão corrigida em 03/05/2026
 
+## Deploy (produção)
+- Backend: Railway | builder=DOCKERFILE (Nixpacks ignora railway.json → Procfile+main.py raiz como workaround)
+- Frontend: Vercel | root=`frontend/` | framework=Vite
+- Dockerfile: USER appuser exige `ENV PATH="/home/appuser/.local/bin:$PATH"` (gunicorn em ~/.local/bin)
+- CMD shell form com `${PORT:-8000}` (Railway injeta PORT dinamicamente)
+- Gunicorn: `-w 1` (512MB RAM; 2 workers = OOM com PyTorch)
+- railway.json: enums maiúsculos obrigatórios (DOCKERFILE, ON_FAILURE)
+- Vercel: Root Directory = `frontend` (sem isso bundleia PyTorch como Lambda → 7GB, falha)
+- Configs locais sensíveis: deploy-config.txt (gitignored)
+
 ## Regras permanentes
 - NUNCA treinos em paralelo (Ryzen 9 7900)
 - NUNCA tool calls em paralelo — 1 por vez, sequencial

@@ -12,6 +12,9 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Deploy config local
+deploy-config.txt
+
 # Env files
 .env
 .env.local
