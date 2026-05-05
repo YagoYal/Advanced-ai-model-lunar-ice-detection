@@ -4,7 +4,6 @@ import os
 import numpy as np
 from fastapi import Depends, FastAPI, HTTPException, Request, Security
 from fastapi.security.api_key import APIKeyHeader
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,7 +52,6 @@ async def verificar_api_key(key: str = Security(_api_key_header)):
         raise HTTPException(status_code=403, detail="API key inválida ou ausente.")
 
 if ENV == "production":
-    app.add_middleware(HTTPSRedirectMiddleware)
     if not API_KEY:
         logger.warning("API_KEY não definida em produção — todos os requests serão aceitos sem autenticação.")
 
