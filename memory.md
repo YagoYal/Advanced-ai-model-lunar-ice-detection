@@ -62,7 +62,11 @@ probabilidade_gelo, variancia, confianca, temperatura, temperatura_subsolo[3], i
 - railway.json: enums maiúsculos obrigatórios (DOCKERFILE, ON_FAILURE)
 - Vercel: Root Directory = `frontend` (sem isso bundleia PyTorch como Lambda → 7GB, falha)
 - Vercel SPA routing: `vercel.json` precisa de `rewrites [{"source":"/(.*)","destination":"/index.html"}]`
-- NASA Trek tiles: formato TMS (Y invertido) → TileLayer precisa de `tms={true}`; URL correta: `LRO_WAC_Mosaic_Global_303ppd_v02` (100m=404)
+- NASA Trek tiles: URL correta `LRO_WAC_Mosaic_Global_303ppd_v02` (100m=404); NÃO usar tms=true (não é TMS — inverte imagem)
+- HTTPSRedirectMiddleware quebra POSTs atrás de reverse proxy (Railway/Vercel terminam SSL; middleware converte POST→GET via 301)
+- Railway PORT dinâmico: gunicorn CMD shell form `${PORT:-8000}`; domínio deve apontar para a porta real que Railway injeta (verificar nos logs)
+- Mock fallback deve usar 180×360 (grade real), não 64×64
+- Pesos do modelo: `model/pesos.pth` e `model/rl_pesos.pth` devem estar no repo (pequenos: 2.3MB+209KB)
 - Configs locais sensíveis: deploy-config.txt (gitignored)
 
 ## Regras permanentes

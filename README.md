@@ -2,6 +2,10 @@
 
 Plataforma de detecção de gelo lunar por IA com dados reais do LRO (Lunar Reconnaissance Orbiter), navegação autônoma de rover via DQN e interface web interativa.
 
+**Demo ao vivo:** [advanced-ai-model-lunar-ice-detecti.vercel.app](https://advanced-ai-model-lunar-ice-detecti.vercel.app)
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20014594.svg)](https://doi.org/10.5281/zenodo.20014594)
+
 ---
 
 ## O que o sistema faz
@@ -80,7 +84,7 @@ lunar-ice-intelligence/
 │       ├── labels_gelo.npy               PSR + EPF + CPR fundidos — 14 656 positivos (22.6%)
 │       ├── labels_confianca.npy          Confiança por fonte (EPF=1.0, CPR=0.8, PSR catálogo)
 │       ├── labels_mini_rf_cpr.npy        CPR > 1.0 por pixel
-│       └── imagens/                      50 patches 32×32 (inclui Haworth/Nobile/Peary calibrados)
+│       └── imagens/                      50 patches 64×64 (inclui Haworth/Nobile/Peary calibrados)
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx                       Landing page com 8 seções
@@ -235,7 +239,17 @@ make test-all       # ambos
 
 ## Deploy
 
-**Docker:**
+**Produção (Railway + Vercel):**
+
+| Serviço | Plataforma | URL |
+|---|---|---|
+| Backend (FastAPI) | Railway | `advanced-ai-model-lunar-ice-detection-production.up.railway.app` |
+| Frontend (React) | Vercel | [advanced-ai-model-lunar-ice-detecti.vercel.app](https://advanced-ai-model-lunar-ice-detecti.vercel.app) |
+
+Variáveis obrigatórias no Railway: `ENV=production`, `API_KEY`, `ALLOWED_ORIGINS`, `DATA_MODE=real`.
+Variáveis obrigatórias no Vercel: `VITE_API_URL`, `VITE_API_KEY`. Root Directory: `frontend`.
+
+**Docker (local):**
 ```bash
 make build
 docker-compose up
@@ -247,9 +261,9 @@ Os volumes `./data` e `./model` são montados no container — pesos (`pesos.pth
 
 | Variável | Padrão | Descrição |
 |---|---|---|
-| `DATA_MODE` | `real` | `real` usa dados processados; `mock` usa grade 64×64 sintética |
+| `DATA_MODE` | `real` | `real` usa dados processados; `mock` usa grade 180×360 sintética |
 | `TRAIN_EPOCHS` | `30` | Número de epochs do treino CNN |
-| `ALLOWED_ORIGINS` | `http://localhost:5173` | CORS origins separadas por vírgula |
+| `ALLOWED_ORIGINS` | `*` | CORS origins separadas por vírgula |
 | `VITE_API_URL` | `http://localhost:8000` | URL do backend para o frontend |
 
 ---
@@ -265,6 +279,21 @@ Os volumes `./data` e `./model` são montados no container — pesos (`pesos.pth
 - Hayne et al. (2015) *JGR Planets* — Diviner: mapa global de hidratação
 - Williams et al. (2019) *JGR Planets* — Diviner EPF dataset
 - Sato et al. (2014) *JGR Planets* — LROC WAC photometry global
+
+---
+
+## Citação
+
+```bibtex
+@software{almeida_da_silva_2026,
+  author    = {Almeida da Silva, Yago},
+  title     = {Lunar Ice Intelligence},
+  year      = {2026},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.20014594},
+  url       = {https://doi.org/10.5281/zenodo.20014594}
+}
+```
 
 ---
 
