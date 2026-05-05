@@ -88,7 +88,6 @@ export default function App() {
           attribution="NASA Trek / LRO WAC"
           minZoom={1}
           maxZoom={7}
-          tms={true}
         />
         <ClickHandler onClick={handleSelect} />
         {ponto && (

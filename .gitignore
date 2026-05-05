@@ -57,6 +57,8 @@ data/processed/lro/metadata*.npy
 # Modelos treinados
 *.pt
 *.pth
+!model/pesos.pth
+!model/rl_pesos.pth
 *.h5
 *.ckpt
 *.joblib
