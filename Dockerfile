@@ -10,6 +10,7 @@ RUN apt-get update \
 
 RUN useradd -m appuser
 USER appuser
+ENV PATH="/home/appuser/.local/bin:$PATH"
 
 COPY --chown=appuser:appuser requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
