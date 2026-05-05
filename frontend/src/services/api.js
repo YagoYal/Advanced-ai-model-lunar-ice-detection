@@ -1,6 +1,6 @@
 const IS_DEV = import.meta.env.DEV;
-const API_URL = import.meta.env.VITE_API_URL
-  ?? (IS_DEV ? "http://localhost:8000" : (() => { throw new Error("VITE_API_URL não definida em produção"); })());
+const API_URL = import.meta.env.VITE_API_URL ||
+  (IS_DEV ? "http://localhost:8000" : (() => { throw new Error("VITE_API_URL não definida em produção"); })());
 
 if (!IS_DEV && API_URL.startsWith("http://")) {
   console.warn("[security] VITE_API_URL usa HTTP em produção — use HTTPS.");
