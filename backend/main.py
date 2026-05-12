@@ -73,7 +73,10 @@ app.add_middleware(SecurityHeadersMiddleware)
 # =========================
 
 _origins_env = os.getenv("ALLOWED_ORIGINS", "")
-ALLOWED_ORIGINS = _origins_env.split(",") if _origins_env else ["*"]
+ALLOWED_ORIGINS = [o.strip() for o in _origins_env.split(",") if o.strip()] if _origins_env else ["*"]
+
+if ENV == "production" and ALLOWED_ORIGINS == ["*"]:
+    logger.warning("ALLOWED_ORIGINS não definida em produção — CORS aceita qualquer origem.")
 
 app.add_middleware(
     CORSMiddleware,
