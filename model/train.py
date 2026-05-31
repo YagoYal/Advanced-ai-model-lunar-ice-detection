@@ -46,7 +46,7 @@ n_val   = n - n_train
 train_ds, val_ds = random_split(dataset, [n_train, n_val])
 
 labels_all = np.array([dataset[i][2].item() for i in range(n)])
-n_pos = int(labels_all.sum())
+n_pos = int((labels_all > 0).sum())
 n_neg = n - n_pos
 
 _pm = DEVICE.type == "cuda"
@@ -64,7 +64,7 @@ model = LunarCNN().to(DEVICE)
 _pos_w = torch.tensor([n_neg / (n_pos + 1e-9)], device=DEVICE)
 
 def criterion(pred, target):
-    w = torch.where(target == 1, _pos_w.expand_as(target), torch.ones_like(target))
+    w = torch.where(target > 0, _pos_w.expand_as(target), torch.ones_like(target))
     return nn.functional.binary_cross_entropy(pred.clamp(1e-7, 1-1e-7), target, weight=w)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
@@ -74,9 +74,9 @@ scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)
 # ─── Métricas ─────────────────────────────────────────────────────────────────
 def calcular_metricas(preds: torch.Tensor, labels: torch.Tensor) -> dict:
     pred_bin = (preds > 0.5).float()
-    tp = ((pred_bin == 1) & (labels == 1)).sum().float()
+    tp = ((pred_bin == 1) & (labels > 0)).sum().float()
     fp = ((pred_bin == 1) & (labels == 0)).sum().float()
-    fn = ((pred_bin == 0) & (labels == 1)).sum().float()
+    fn = ((pred_bin == 0) & (labels > 0)).sum().float()
     tn = ((pred_bin == 0) & (labels == 0)).sum().float()
 
     acc       = (tp + tn) / (tp + fp + fn + tn + 1e-9)

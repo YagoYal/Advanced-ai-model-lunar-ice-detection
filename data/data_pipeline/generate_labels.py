@@ -242,37 +242,45 @@ def salvar_labels(
     )
 
     # Funde com labels Mini-RF CPR se disponivel (preserva deteccoes de radar)
+    # Threshold >= 0.25: pelo menos 1/4 dos sub-pixels concordam CPR > 1.0 (Spudis 2010 GRL).
+    # Mais seletivo que > 0 (22.6%) mas mantém sinal de treino limpo (binário).
+    # Labels float ficam em labels_confianca.npy para análise posterior.
     cpr_path = os.path.join(out_dir, "labels_mini_rf_cpr.npy")
     n_cpr = 0
     if os.path.exists(cpr_path):
-        cpr = np.load(cpr_path)
+        cpr = np.load(cpr_path).astype(np.float32)
         if cpr.shape == binary.shape:
-            cpr_mask = (cpr > 0).astype(np.float32)
+            cpr_mask = (cpr >= 0.25).astype(np.float32)
             binary = np.maximum(binary.astype(np.float32), cpr_mask)
-            # Confianca CPR = 0.8 (Spudis 2010)
-            confidence = np.where((cpr_mask > 0) & (confidence < 0.8), 0.8, confidence)
+            # Confiança proporcional ao sinal CPR (mín 0.6 para detecções confirmadas >= 0.25)
+            cpr_detected = cpr_mask > 0
+            cpr_confidence = np.where(cpr_detected, np.maximum(cpr, 0.6), 0.0)
+            confidence = np.where(cpr_detected & (confidence < cpr_confidence),
+                                  cpr_confidence, confidence)
             n_cpr = int(cpr_mask.sum())
             if verbose:
-                print(f"  CPR Mini-RF: {n_cpr} pixels de radar fundidos")
+                print(f"  CPR Mini-RF: {n_cpr} pixels (threshold>=0.25, {(cpr >= 0.5).sum()} com >=0.5)")
 
     np.save(os.path.join(out_dir, "labels_confianca.npy"), confidence)
     np.save(os.path.join(out_dir, "labels_gelo.npy"), binary.astype(np.float32))
     np.save(os.path.join(out_dir, "labels_fonte.npy"), source)
 
+    pos_mask = binary > 0
     stats = {
         "total_pixels":   int(binary.size),
-        "positivos":      int(binary.sum()),
-        "negativos":      int((binary == 0).sum()),
-        "pct_positivo":   float(binary.mean() * 100),
-        "conf_media_pos": float(confidence[binary == 1].mean()) if binary.sum() > 0 else 0,
+        "positivos":      int(pos_mask.sum()),
+        "negativos":      int((~pos_mask).sum()),
+        "pct_positivo":   float(pos_mask.mean() * 100),
+        "conf_media_pos": float(confidence[pos_mask].mean()) if pos_mask.any() else 0,
         "psrs_modelados": len(PSR_CONFIRMADOS),
         "epf_integrado":  os.path.exists(epf_csv),
         "cpr_pixels":     n_cpr,
     }
 
     if verbose:
+        strong = int((binary >= 0.5).sum())
         print(f"Labels gerados (PSR + EPF + CPR):")
-        print(f"  Positivos : {stats['positivos']} pixels ({stats['pct_positivo']:.2f}%)")
+        print(f"  Positivos : {stats['positivos']} pixels ({stats['pct_positivo']:.2f}%) — destes {strong} com label>=0.5")
         print(f"  Negativos : {stats['negativos']} pixels")
         print(f"  PSRs      : {stats['psrs_modelados']} locais confirmados")
         print(f"  Conf media: {stats['conf_media_pos']:.2f}")
