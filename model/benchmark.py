@@ -74,8 +74,8 @@ def rodar_benchmark() -> dict:
         insol_n = insol / 1361.0
         lat_n   = lat   / 90.0
 
-        temp_sup  = temperatura_superficie(insol, lat, 0.25)
-        sub_feats = features_subsolo(temp_sup)  # [sub_0.1m, sub_0.5m, sub_1.0m] normalizados
+        temp_sup  = temperatura_superficie(insol)
+        sub_feats = features_subsolo(temp_sup, insolacao=insol)
 
         img    = np.zeros((64, 64), dtype=np.float32)
         img_t  = torch.tensor(img).unsqueeze(0).unsqueeze(0).to(DEVICE)

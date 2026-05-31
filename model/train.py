@@ -13,7 +13,7 @@ import os
 import sys
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, random_split, WeightedRandomSampler
+from torch.utils.data import DataLoader, random_split
 import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -29,6 +29,11 @@ BATCH_SIZE = 16
 MODE       = os.getenv("DATA_MODE", "real")
 WEIGHTS_PATH = "model/pesos.pth"
 
+# Limita VRAM a 70% para não saturar a GPU (deixa margem para OS e outros processos)
+if DEVICE.type == "cuda":
+    torch.cuda.set_per_process_memory_fraction(0.7)
+    print(f"GPU: {torch.cuda.get_device_name(0)} | VRAM limitada a 70%")
+
 print(f"Device: {DEVICE} | Modo: {MODE} | Epochs: {EPOCHS}")
 
 
@@ -40,33 +45,27 @@ n_train = int(0.8 * n)
 n_val   = n - n_train
 train_ds, val_ds = random_split(dataset, [n_train, n_val])
 
-# Sampler balanceado: sobre-amostra positivos para compensar desbalanceio
 labels_all = np.array([dataset[i][2].item() for i in range(n)])
-n_pos = labels_all.sum()
+n_pos = int(labels_all.sum())
 n_neg = n - n_pos
-weight_pos = n / (2 * n_pos + 1e-9)
-weight_neg = n / (2 * n_neg + 1e-9)
-sample_weights = np.where(labels_all > 0.5, weight_pos, weight_neg)
-train_indices = train_ds.indices
-train_weights = torch.tensor(sample_weights[train_indices], dtype=torch.float32)
-sampler = WeightedRandomSampler(train_weights, num_samples=len(train_indices), replacement=True)
 
-train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, sampler=sampler)
-val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE, shuffle=False)
+_pm = DEVICE.type == "cuda"
 
-print(f"Train: {n_train} | Val: {n_val} | Pos: {int(n_pos)} ({100*n_pos/n:.1f}%)")
+train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True, pin_memory=_pm)
+val_loader   = DataLoader(val_ds,   batch_size=BATCH_SIZE, shuffle=False, pin_memory=_pm)
+
+print(f"Train: {n_train} | Val: {n_val} | Pos: {n_pos} ({100*n_pos/n:.1f}%)")
 
 
 # ─── Modelo ───────────────────────────────────────────────────────────────────
 model = LunarCNN().to(DEVICE)
 
-# Weighted BCE: penaliza mais erros em positivos (raros)
-pos_weight = torch.tensor([weight_pos / weight_neg], device=DEVICE)
-criterion  = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+# BCE ponderada: pos_weight=n_neg/n_pos compensa 3:1 sem risco de saturação focal
+_pos_w = torch.tensor([n_neg / (n_pos + 1e-9)], device=DEVICE)
 
-# Ajuste: o modelo usa Sigmoid no final, então usamos BCELoss direto
-# Se LunarCNN já aplica Sigmoid internamente, usar BCELoss
-criterion = nn.BCELoss()
+def criterion(pred, target):
+    w = torch.where(target == 1, _pos_w.expand_as(target), torch.ones_like(target))
+    return nn.functional.binary_cross_entropy(pred.clamp(1e-7, 1-1e-7), target, weight=w)
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=EPOCHS)

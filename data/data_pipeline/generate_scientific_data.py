@@ -24,6 +24,15 @@ import sys
 import numpy as np
 from model.physics import Z_SKIN, TEMP_ESPACO
 
+
+def _haversine_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Distância de arco-grande em graus — vetorizável em lat1/lon1."""
+    lat1, lon1, lat2, lon2 = np.radians(lat1), np.radians(lon1), np.radians(lat2), np.radians(lon2)
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+    return np.degrees(2 * np.arcsin(np.sqrt(np.clip(a, 0.0, 1.0))))
+
 # ─── Constantes físicas baseadas em publicações ───────────────────────────────
 SOLAR_CONSTANT = 1361.0      # W/m² — medido por TIM/SORCE
 TEMP_ICE_STABLE = 110.0      # K — sublimação de H2O (Zhang & Paige 2009)
@@ -106,27 +115,29 @@ def temperatura_diviner(lat_grid, lon_grid):
     )
     temp[mask_xp] = np.clip(temp[mask_xp], TEMP_PSR_MIN, 100)
 
-    # ── PSRs conhecidos: cold spots gaussianos ────────────────────────────────
+    # ── PSRs conhecidos: cold spots gaussianos (haversine — geometria polar correta) ──
+    lat_col = lat_grid[:, 0]   # (H,) — latitude de cada linha
+    lon_row = lon_grid[0, :]   # (W,) — longitude de cada coluna
+
     for (lat_c, lon_c, raio, T_psr) in PSRS_CONHECIDOS:
-        # Converter para índices de grade — clip para manter dentro dos bounds (H=180, W=360)
         i_c = int(np.clip(round(lat_c + 90), 0, H - 1))
-        j_c = int(np.clip(round(lon_c + 180), 0, W - 1))
+        raio_i = int(raio) + 2
 
-        raio_px = int(raio * 1.5) + 2
-        i_min = max(0, i_c - raio_px)
-        i_max = min(H, i_c + raio_px + 1)
-        j_min = max(0, j_c - raio_px)
-        j_max = min(W, j_c + raio_px + 1)
-
-        for ii in range(i_min, i_max):
-            for jj in range(j_min, j_max):
-                dlat = lat_grid[ii, jj] - lat_c
-                dlon = lon_grid[ii, jj] - lon_c
-                dist = np.sqrt(dlat**2 + dlon**2)
-                if dist < raio:
-                    # Perfil gaussiano dentro do PSR
-                    weight = np.exp(-(dist / (raio * 0.5))**2)
-                    temp[ii, jj] = T_psr * weight + temp[ii, jj] * (1 - weight)
+        for ii in range(max(0, i_c - raio_i), min(H, i_c + raio_i + 1)):
+            lat_i = float(lat_col[ii])
+            if abs(lat_i - lat_c) > raio:
+                continue
+            # Haversine vetorizado para todos os j desta linha
+            lat1 = np.radians(lat_i)
+            lat2 = np.radians(lat_c)
+            dlon = np.radians(lon_row - lon_c)
+            a = np.sin((lat1 - lat2) / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+            dists = np.degrees(2 * np.arcsin(np.sqrt(np.clip(a, 0.0, 1.0))))
+            mask = dists < raio
+            if not mask.any():
+                continue
+            weights = np.exp(-(dists[mask] / (raio * 0.5)) ** 2)
+            temp[ii, mask] = T_psr * weights + temp[ii, mask] * (1 - weights)
 
     return temp.clip(TEMP_PSR_MIN, 420)
 
@@ -167,24 +178,28 @@ def insolacao_lola(lat_grid, lon_grid):
     frac += rng.normal(0, 0.02, (H, W))
     frac = np.clip(frac, 0.0, 1.0)
 
-    # PSRs — iluminação próxima de zero
+    # PSRs — iluminação próxima de zero (haversine — geometria polar correta)
+    lat_col = lat_grid[:, 0]
+    lon_row = lon_grid[0, :]
+
     for (lat_c, lon_c, raio, _) in PSRS_CONHECIDOS:
         i_c = int(np.clip(round(lat_c + 90), 0, H - 1))
-        j_c = int(np.clip(round(lon_c + 180), 0, W - 1))
-        raio_px = int(raio * 1.5) + 2
-        i_min = max(0, i_c - raio_px)
-        i_max = min(H, i_c + raio_px + 1)
-        j_min = max(0, j_c - raio_px)
-        j_max = min(W, j_c + raio_px + 1)
+        raio_i = int(raio) + 2
 
-        for ii in range(i_min, i_max):
-            for jj in range(j_min, j_max):
-                dlat = lat_grid[ii, jj] - lat_c
-                dlon = lon_grid[ii, jj] - lon_c
-                dist = np.sqrt(dlat**2 + dlon**2)
-                if dist < raio:
-                    weight = np.exp(-(dist / (raio * 0.5))**2)
-                    frac[ii, jj] *= (1 - weight * 0.98)
+        for ii in range(max(0, i_c - raio_i), min(H, i_c + raio_i + 1)):
+            lat_i = float(lat_col[ii])
+            if abs(lat_i - lat_c) > raio:
+                continue
+            lat1 = np.radians(lat_i)
+            lat2 = np.radians(lat_c)
+            dlon = np.radians(lon_row - lon_c)
+            a = np.sin((lat1 - lat2) / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+            dists = np.degrees(2 * np.arcsin(np.sqrt(np.clip(a, 0.0, 1.0))))
+            mask = dists < raio
+            if not mask.any():
+                continue
+            weights = np.exp(-(dists[mask] / (raio * 0.5)) ** 2)
+            frac[ii, mask] *= (1 - weights * 0.98)
 
     insol = frac * SOLAR_CONSTANT
     return insol.astype(np.float32)
@@ -192,32 +207,37 @@ def insolacao_lola(lat_grid, lon_grid):
 
 # ─── Modelo subsuperficial (Vasavada 2012) ───────────────────────────────────
 
-def temperatura_subsolo_grid(temp_superficie, profundidade=2.0, camadas=20):
+def temperatura_subsolo_grid(temp_superficie, insol_grid=None, profundidade=2.0, camadas=20):
     """
-    Solução analítica da equação de difusão térmica para toda a grade (vetorizada).
+    Temperatura mínima anual por profundidade para toda a grade (vetorizada).
 
-    T(z) = T_mean + (T_sup - T_mean) * exp(-z / z_skin)
-    Ref: Vasavada et al. 2012, JGR Planets.
+    T_min(z) = T_mean - A * exp(-z / z_skin)
+
+    T_mean = temperatura média anual superficial.
+    A = (π^0.25 - 1) * T_mean — amplitude diurna para regiões iluminadas
+    (slow-rotator, Vasavada 2012 §2). Para PSRs (insol ≈ 0): A = 0.
 
     Args:
         temp_superficie: array (H, W) — temperatura média anual superficial (K)
+        insol_grid: array (H, W) — insolação média em W/m²; None → A=0 (PSR global)
         profundidade: profundidade máxima em metros
         camadas: número de camadas discretas
 
     Returns:
-        np.ndarray shape (H, W, camadas) — temperatura por profundidade (K)
+        np.ndarray shape (H, W, camadas) — temperatura mínima anual por profundidade (K)
     """
-    # Temperatura de equilíbrio profundo: 80% da superfície, mínimo 3K
-    T_mean = np.maximum(temp_superficie * 0.8, TEMP_ESPACO)   # (H, W)
+    T_mean = np.maximum(temp_superficie.astype(np.float64), TEMP_ESPACO)  # (H, W)
 
-    profundidades = np.linspace(0.0, profundidade, camadas)    # (camadas,)
+    if insol_grid is not None:
+        A = np.where(insol_grid > 10.0, (np.pi ** 0.25 - 1.0) * T_mean, 0.0)
+    else:
+        A = np.zeros_like(T_mean)
 
-    # Broadcasting: (H, W, 1) op (1, 1, camadas) → (H, W, camadas)
-    delta = (temp_superficie - T_mean)[:, :, None]             # (H, W, 1)
-    decay = np.exp(-profundidades[None, None, :] / Z_SKIN)     # (1, 1, camadas)
+    profundidades = np.linspace(0.0, profundidade, camadas)           # (camadas,)
+    decay = np.exp(-profundidades[None, None, :] / Z_SKIN)            # (1, 1, camadas)
 
-    subsolo = T_mean[:, :, None] + delta * decay               # (H, W, camadas)
-    return subsolo.astype(np.float32)
+    subsolo = T_mean[:, :, None] - A[:, :, None] * decay
+    return np.maximum(subsolo, TEMP_ESPACO).astype(np.float32)
 
 
 # ─── Patches LROC-like ────────────────────────────────────────────────────────
@@ -334,18 +354,6 @@ def gerar_dados(out_dir, modo="real", verbose=True):
     if verbose:
         print(f"    min={temp.min():.1f}K  max={temp.max():.1f}K  media={temp.mean():.1f}K")
 
-    # ── Temperatura subsuperficial (difusão térmica, Vasavada 2012) ───────────
-    if verbose:
-        print("  Gerando temperatura subsuperficial (20 camadas, 0-2m)...")
-
-    subsolo = temperatura_subsolo_grid(temp, profundidade=2.0, camadas=20)
-    np.save(os.path.join(out_dir, "temperatura_subsolo.npy"), subsolo)
-    if verbose:
-        camada_1m = subsolo[:, :, 9]   # índice ~1m de profundidade
-        n_estavel = int(np.sum(subsolo.min(axis=2) < 110.0))
-        print(f"    shape={subsolo.shape}  T@1m: {camada_1m.min():.1f}K-{camada_1m.max():.1f}K")
-        print(f"    pixels com gelo estavel em subsolo: {n_estavel} ({n_estavel/subsolo.shape[0]/subsolo.shape[1]*100:.1f}%)")
-
     # ── Insolação ─────────────────────────────────────────────────────────────
     if verbose:
         print("  Gerando insolação (modelo LOLA / Mazarico 2011)...")
@@ -365,6 +373,18 @@ def gerar_dados(out_dir, modo="real", verbose=True):
     np.save(os.path.join(out_dir, "insolacao.npy"), insol)
     if verbose:
         print(f"    min={insol.min():.1f}  max={insol.max():.1f}  media={insol.mean():.1f} W/m²")
+
+    # ── Temperatura subsuperficial (difusão térmica, Vasavada 2012) ───────────
+    if verbose:
+        print("  Gerando temperatura subsuperficial (20 camadas, 0-2m)...")
+
+    subsolo = temperatura_subsolo_grid(temp, insol_grid=insol, profundidade=2.0, camadas=20)
+    np.save(os.path.join(out_dir, "temperatura_subsolo.npy"), subsolo)
+    if verbose:
+        camada_1m = subsolo[:, :, 9]   # índice ~1m de profundidade
+        n_estavel = int(np.sum(subsolo.min(axis=2) < 110.0))
+        print(f"    shape={subsolo.shape}  T@1m: {camada_1m.min():.1f}K-{camada_1m.max():.1f}K")
+        print(f"    pixels com gelo estavel em subsolo: {n_estavel} ({n_estavel/subsolo.shape[0]/subsolo.shape[1]*100:.1f}%)")
 
     # ── Labels de gelo ────────────────────────────────────────────────────────
     # Labels sao gerados por generate_labels.py (PSRs confirmados por instrumentos

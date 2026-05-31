@@ -19,6 +19,11 @@ from autonomy.rl_agent import DQNAgent
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
+# Limita VRAM a 70% para não saturar a GPU durante o RL
+if DEVICE == "cuda":
+    torch.cuda.set_per_process_memory_fraction(0.7)
+    print(f"GPU: {torch.cuda.get_device_name(0)} | VRAM limitada a 70%")
+
 
 def carregar_mapas() -> tuple:
     insol_path = "data/processed/lro/insolacao.npy"

@@ -47,7 +47,8 @@ export default function AnaliseSection() {
   const [ponto,     setPonto]     = useState(null);
   const [historico, setHistorico] = useState([]);
   const [erro,      setErro]      = useState(null);
-  const [caminho,   setCaminho]   = useState(null);
+  const [caminho,    setCaminho]    = useState(null);
+  const [depthLayer, setDepthLayer] = useState(0); // 0=surface, 1=0.1m, 2=0.5m, 3=1.0m
 
   const abortRef = useRef(null);
 
@@ -97,6 +98,7 @@ export default function AnaliseSection() {
   const handleSelect = (coord) => {
     setPonto(coord);
     setCaminho(null);
+    setDepthLayer(0);
     handleAnalisar(coord.lat, coord.lng);
   };
 
@@ -225,8 +227,16 @@ export default function AnaliseSection() {
 
                 {result.temperatura != null && (
                   <div>
-                    <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 6 }}>{t.analise.tempSurface}</p>
-                    <p style={{ color: "#e2e8f0", fontWeight: 600 }}>{result.temperatura.toFixed(2)} K</p>
+                    <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 6 }}>
+                      {depthLayer === 0 ? t.analise.tempSurface : `${t.analise.depthLayerLabel} — ${["0.1", "0.5", "1.0"][depthLayer - 1]} ${t.analise.depthUnit}`}
+                    </p>
+                    <p style={{ color: "#e2e8f0", fontWeight: 600 }}>
+                      {depthLayer === 0
+                        ? `${result.temperatura.toFixed(2)} K`
+                        : result.temperatura_subsolo != null
+                          ? `${result.temperatura_subsolo[depthLayer - 1].toFixed(2)} K`
+                          : "—"}
+                    </p>
                   </div>
                 )}
 
@@ -244,17 +254,71 @@ export default function AnaliseSection() {
                 )}
               </div>
 
-              {result.temperatura_subsolo != null && (
+              {(result.temperatura != null || result.temperatura_subsolo != null) && (
                 <div style={{ marginTop: 18, padding: "12px 16px", background: "rgba(0,0,0,0.22)", borderRadius: 10 }}>
-                  <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 10 }}>{t.analise.subsurfaceTemp}</p>
-                  <div style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
-                    {result.temperatura_subsolo.map((temp, i) => (
-                      <div key={i}>
-                        <span style={{ color: "#64748b", fontSize: "0.8rem" }}>{["0.1m", "0.5m", "1.0m"][i]}: </span>
-                        <span style={{ color: "#e2e8f0", fontWeight: 600 }}>{temp.toFixed(1)} K</span>
-                      </div>
-                    ))}
+                  <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 10 }}>
+                    {t.analise.depthLayerLabel}
+                  </p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+                    {[
+                      { label: t.analise.depthSurface, idx: 0 },
+                      { label: `0.1 ${t.analise.depthUnit}`, idx: 1 },
+                      { label: `0.5 ${t.analise.depthUnit}`, idx: 2 },
+                      { label: `1.0 ${t.analise.depthUnit}`, idx: 3 },
+                    ].map(({ label, idx }) => {
+                      const disabled = idx > 0 && result.temperatura_subsolo == null;
+                      const active = depthLayer === idx;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={() => !disabled && setDepthLayer(idx)}
+                          disabled={disabled}
+                          style={{
+                            padding: "5px 14px",
+                            borderRadius: 8,
+                            border: active
+                              ? "1px solid rgba(125,211,252,0.7)"
+                              : "1px solid rgba(255,255,255,0.12)",
+                            background: active
+                              ? "rgba(125,211,252,0.15)"
+                              : "rgba(255,255,255,0.04)",
+                            color: disabled ? "#334155" : active ? "#7dd3fc" : "#94a3b8",
+                            fontSize: "0.82rem",
+                            fontWeight: active ? 600 : 400,
+                            cursor: disabled ? "not-allowed" : "pointer",
+                            transition: "background 0.15s, border 0.15s, color 0.15s",
+                          }}
+                        >
+                          {label}
+                        </button>
+                      );
+                    })}
                   </div>
+                  {result.temperatura_subsolo != null && (
+                    <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+                      {result.temperatura_subsolo.map((temp, i) => (
+                        <div
+                          key={i}
+                          style={{
+                            padding: "6px 12px",
+                            borderRadius: 8,
+                            background: depthLayer === i + 1
+                              ? "rgba(125,211,252,0.1)"
+                              : "transparent",
+                            border: depthLayer === i + 1
+                              ? "1px solid rgba(125,211,252,0.3)"
+                              : "1px solid transparent",
+                            transition: "background 0.15s, border 0.15s",
+                          }}
+                        >
+                          <span style={{ color: "#64748b", fontSize: "0.78rem" }}>
+                            {["0.1", "0.5", "1.0"][i]} {t.analise.depthUnit}:{" "}
+                          </span>
+                          <span style={{ color: "#e2e8f0", fontWeight: 600 }}>{temp.toFixed(1)} K</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -32,6 +32,15 @@ Refs:
 import os
 import numpy as np
 
+
+def _haversine_deg(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Distância de arco-grande em graus entre dois pontos lat/lon."""
+    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    a = np.sin(dlat / 2) ** 2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2) ** 2
+    return float(np.degrees(2 * np.arcsin(np.sqrt(np.clip(a, 0.0, 1.0)))))
+
 # (lat_deg, lon_deg, raio_deg, confianca, instrumento)
 PSR_CONFIRMADOS = [
     # Polo Sul — raios em graus (1 grau ~30 km no polo)
@@ -73,14 +82,19 @@ def gerar_label_map(H: int = 180, W: int = 360) -> tuple:
 
     for (lat_c, lon_c, raio, conf, instrumento) in PSR_CONFIRMADOS:
         i_c = int(round((lat_c + 90) * lat_scale))
-        j_c = int(round((lon_c + 180) * lon_scale))
-        raio_px = max(2, int(raio * lat_scale * 1.5)) + 1
+        # Pre-filtro em latitude: distância de arco >= |dlat|, então linhas com
+        # |lat_i - lat_c| > raio nunca estão dentro do raio de arco-grande.
+        raio_i = int(raio * lat_scale) + 2
 
-        for ii in range(max(0, i_c - raio_px), min(H, i_c + raio_px + 1)):
-            for jj in range(max(0, j_c - raio_px), min(W, j_c + raio_px + 1)):
-                lat = ii / lat_scale - 90.0
-                lon = jj / lon_scale - 180.0
-                dist = np.sqrt((lat - lat_c)**2 + (lon - lon_c)**2)
+        for ii in range(max(0, i_c - raio_i), min(H, i_c + raio_i + 1)):
+            lat_i = ii / lat_scale - 90.0
+            if abs(lat_i - lat_c) > raio:
+                continue
+            # Próximo ao polo todos os longitudes podem estar dentro do raio —
+            # itera todos os j usando haversine para distância correta.
+            for jj in range(W):
+                lon_j = jj / lon_scale - 180.0
+                dist = _haversine_deg(lat_i, lon_j, lat_c, lon_c)
                 if dist < raio:
                     score = float(conf * np.exp(-(dist / (raio * 0.5))**2))
                     if score > confidence[ii, jj]:
@@ -179,7 +193,7 @@ def integrar_epf_cabeus(
                 continue
 
             # Filtra por proximidade ao centro de Cabeus
-            dist = np.sqrt((clat - cabeus_lat) ** 2 + (clon - cabeus_lon) ** 2)
+            dist = _haversine_deg(clat, clon, cabeus_lat, cabeus_lon)
             if dist > raio_graus:
                 continue
 

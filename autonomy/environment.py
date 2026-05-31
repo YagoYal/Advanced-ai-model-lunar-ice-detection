@@ -22,15 +22,17 @@ class AmbienteLunar:
         arr_insolacao: np.ndarray | None = None,
         arr_temperatura: np.ndarray | None = None,
         arr_temp_subsolo: np.ndarray | None = None,
+        arr_altitude: np.ndarray | None = None,
         img_dir: str = "",
         n_imgs: int = 0,
     ):
         # Modo array (preferido): acesso O(1) sem dicts
-        self._arr_insol   = arr_insolacao
-        self._arr_temp    = arr_temperatura
-        self._arr_subsolo = arr_temp_subsolo   # (H, W, 20) ou None
-        self._img_dir     = img_dir
-        self._n_imgs      = n_imgs
+        self._arr_insol    = arr_insolacao
+        self._arr_temp     = arr_temperatura
+        self._arr_subsolo  = arr_temp_subsolo   # (H, W, 20) ou None
+        self._arr_altitude = arr_altitude        # (H, W) float32, metros ou None
+        self._img_dir      = img_dir
+        self._n_imgs       = n_imgs
 
         # Modo legado: dicts (mantido para compatibilidade)
         self.mapa_imagens     = mapa_imagens     or {}
@@ -95,6 +97,15 @@ class AmbienteLunar:
         imagem, insolacao = self.get_dados(pos)
         lat, lon = pos
         return imagem, insolacao, self._temperatura(lat, lon), self._temp_subsolo(lat, lon)
+
+    def get_altitude(self, pos) -> float | None:
+        """Retorna altitude LOLA em metros para a posição, ou None se indisponível."""
+        if self._arr_altitude is None:
+            return None
+        lat, lon = int(pos[0]), int(pos[1])
+        lat = max(0, min(lat, self._arr_altitude.shape[0] - 1))
+        lon = max(0, min(lon, self._arr_altitude.shape[1] - 1))
+        return float(self._arr_altitude[lat, lon])
 
     def get_custo(self, pos):
         imagem, insolacao = self.get_dados(pos)

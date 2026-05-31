@@ -1,8 +1,10 @@
+import json
 import logging
 import os
+import time
 
 import numpy as np
-from fastapi import Depends, FastAPI, HTTPException, Request, Security
+from fastapi import Depends, FastAPI, HTTPException, Request, Security, WebSocket, WebSocketDisconnect
 from fastapi.security.api_key import APIKeyHeader
 from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -18,15 +20,47 @@ from autonomy.rover import Rover
 from model.hybrid_model import modelo_hibrido, prever_com_incerteza, tempo_lunar
 from model.physics import insolacao_dinamica
 
+class _JsonFormatter(logging.Formatter):
+    """Emite cada linha de log como JSON — compatível com Railway/Vercel log drains."""
+    def format(self, record: logging.LogRecord) -> str:
+        payload: dict = {
+            "ts":     self.formatTime(record, "%Y-%m-%dT%H:%M:%S"),
+            "level":  record.levelname,
+            "logger": record.name,
+            "msg":    record.getMessage(),
+        }
+        if record.exc_info:
+            payload["exc"] = self.formatException(record.exc_info)
+        for key in ("lat", "lon", "duration_ms", "endpoint"):
+            if hasattr(record, key):
+                payload[key] = getattr(record, key)
+        return json.dumps(payload, ensure_ascii=False)
+
+
+def _setup_logging() -> None:
+    handler = logging.StreamHandler()
+    handler.setFormatter(_JsonFormatter())
+    root = logging.getLogger()
+    root.handlers.clear()
+    root.addHandler(handler)
+    root.setLevel(logging.getLevelName(os.getenv("LOG_LEVEL", "INFO").upper()))
+
+
+_setup_logging()
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
 
 # =========================
 # APP + RATE LIMITER
 # =========================
 
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(title="Lunar Ice Intelligence API")
+app = FastAPI(
+    title="Lunar Ice Intelligence API",
+    version="1.0.0",
+    docs_url="/v1/docs",
+    redoc_url="/v1/redoc",
+    openapi_url="/v1/openapi.json",
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -128,19 +162,29 @@ def carregar_mapas():
         subsolo = None
         logger.warning("temperatura_subsolo.npy ausente — subsolo indisponivel na API")
 
+    # Mapa de altitude LOLA (H, W) float32, metros — opcional, fallback None
+    altitude_path = os.path.join(DATA_DIR, "altitude.npy")
+    if os.path.exists(altitude_path):
+        altitude = np.load(altitude_path)
+        logger.info("Mapa altitude LOLA carregado: %s", str(altitude.shape))
+    else:
+        altitude = None
+        logger.warning("altitude.npy ausente — altitude_m indisponivel na API")
+
     h, w = temp.shape
     img_dir = os.path.join(DATA_DIR, "imagens")
     n_imgs = len([f for f in os.listdir(img_dir) if f.endswith(".npy")]) if os.path.isdir(img_dir) else 0
 
-    return temp, insol, subsolo, img_dir, n_imgs, h, w
+    return temp, insol, subsolo, altitude, img_dir, n_imgs, h, w
 
 
-arr_temperatura, arr_insolacao, arr_subsolo, IMG_DIR, N_IMGS, H, W = carregar_mapas()
+arr_temperatura, arr_insolacao, arr_subsolo, arr_altitude, IMG_DIR, N_IMGS, H, W = carregar_mapas()
 
 ambiente = AmbienteLunar(
     arr_insolacao=arr_insolacao,
     arr_temperatura=arr_temperatura,
     arr_temp_subsolo=arr_subsolo,
+    arr_altitude=arr_altitude,
     img_dir=IMG_DIR,
     n_imgs=N_IMGS,
 )
@@ -214,6 +258,7 @@ def status():
 @limiter.limit("30/minute")
 def analisar(req: RequestAnalise, request: Request, _: None = Depends(verificar_api_key)):
     validar_posicao(req.lat, req.lon)
+    t0 = time.perf_counter()
     try:
         imagem, insolacao, temperatura = ambiente.get_dados_completo((req.lat, req.lon))
         prob, variancia = prever_com_incerteza(
@@ -239,6 +284,15 @@ def analisar(req: RequestAnalise, request: Request, _: None = Depends(verificar_
         t_lunar   = tempo_lunar()
         insol_atual = insolacao_dinamica(lat_graus, t_lunar)
 
+        altitude_m_raw = ambiente.get_altitude((req.lat, req.lon))
+        altitude_m = round(altitude_m_raw, 1) if altitude_m_raw is not None else None
+
+        logger.info("analisar", extra={
+            "endpoint": "/analisar",
+            "lat": req.lat, "lon": req.lon,
+            "duration_ms": round((time.perf_counter() - t0) * 1000, 1),
+        })
+
         return {
             "lat": req.lat,
             "lon": req.lon,
@@ -250,11 +304,12 @@ def analisar(req: RequestAnalise, request: Request, _: None = Depends(verificar_
             "insolacao": float(insolacao),
             "insolacao_atual": round(insol_atual, 2),   # instantânea no ciclo lunar atual
             "fase_lunar": round(t_lunar, 4),
+            "altitude_m": altitude_m,
         }
     except HTTPException:
         raise
     except Exception:
-        logger.exception("Erro em /analisar lat=%d lon=%d", req.lat, req.lon)
+        logger.exception("Erro em /analisar", extra={"lat": req.lat, "lon": req.lon})
         raise HTTPException(status_code=500, detail="Internal error processing analysis")
 
 
@@ -312,6 +367,56 @@ def simular(req: RequestSimulacao, request: Request, _: None = Depends(verificar
         caminho.append({"movimento": mov, "posicao": pos, "probabilidade_gelo": prob})
 
     return {"inicio": [req.lat, req.lon], "caminho": caminho}
+
+
+# =========================
+# SIMULACAO ROVER — WebSocket (streaming)
+# =========================
+
+
+@app.websocket("/ws/simular")
+async def ws_simular(ws: WebSocket):
+    await ws.accept()
+    try:
+        payload = await ws.receive_json()
+        lat    = int(payload.get("lat", 0))
+        lon    = int(payload.get("lon", 0))
+        passos = max(1, min(int(payload.get("passos", 10)), 100))
+
+        if not (0 <= lat < H and 0 <= lon < W):
+            await ws.send_json({"erro": f"Posição inválida: ({lat}, {lon})"})
+            await ws.close(code=1008)
+            return
+
+        rover   = Rover([lat, lon])
+        planner = Planner(rover, ambiente)
+
+        for passo in range(passos):
+            mov = planner.passo()
+            pos = rover.get_pos()
+            try:
+                img, ins, temp = ambiente.get_dados_completo(tuple(pos))
+                prob = modelo_hibrido(imagem=img, insolacao=ins, temperatura=temp, lat=pos[0] - 90)
+            except Exception:
+                prob = None
+
+            await ws.send_json({
+                "passo": passo + 1,
+                "movimento": mov,
+                "posicao": pos,
+                "probabilidade_gelo": float(prob) if prob is not None else None,
+            })
+
+        await ws.send_json({"done": True, "total_passos": passos})
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logger.exception("Erro em /ws/simular")
+        try:
+            await ws.send_json({"erro": str(e)})
+        except Exception:
+            pass
 
 
 # =========================
