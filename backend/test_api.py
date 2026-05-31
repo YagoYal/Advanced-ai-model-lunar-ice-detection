@@ -127,3 +127,99 @@ def test_predict_imagem_aninhada_valida():
     response = client.post("/predict", json={"imagem": imagem, "insolacao": 500.0})
     assert response.status_code == 200
     assert 0.0 <= response.json()["probabilidade_gelo"] <= 1.0
+
+
+# --- Campos da resposta /analisar ---
+
+def test_analisar_campos_completos():
+    response = client.post("/analisar", json={"lat": 10, "lon": 10})
+    assert response.status_code == 200
+    data = response.json()
+    for campo in ("probabilidade_gelo", "variancia", "confianca", "temperatura",
+                  "temperatura_subsolo", "insolacao", "insolacao_atual", "fase_lunar", "altitude_m"):
+        assert campo in data, f"campo ausente: {campo}"
+    assert 0.0 <= data["fase_lunar"] <= 1.0
+    assert data["insolacao_atual"] >= 0.0
+    assert data["confianca"] in ("alta", "moderada", "baixa")
+
+
+def test_analisar_psr_sul_shackleton():
+    # Shackleton -89.9° → lat_idx=0, lon_idx=180 — PSR confirmado (LAMP/Gladstone 2010)
+    response = client.post("/analisar", json={"lat": 0, "lon": 180})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["probabilidade_gelo"] >= 0.5, "PSR sul deve ter probabilidade >= 0.5"
+
+
+def test_analisar_equador_baixa_prob():
+    # Equador iluminado — sem gelo esperado
+    response = client.post("/analisar", json={"lat": 90, "lon": 180})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["probabilidade_gelo"] < 0.5, "Equador não deve ter alta probabilidade de gelo"
+
+
+def test_analisar_altitude_m_tipo():
+    response = client.post("/analisar", json={"lat": 10, "lon": 10})
+    data = response.json()
+    alt = data["altitude_m"]
+    assert alt is None or isinstance(alt, float), f"altitude_m deve ser float ou None, got {type(alt)}"
+
+
+# --- Docs / versioning ---
+
+def test_docs_v1():
+    response = client.get("/v1/docs")
+    assert response.status_code == 200
+
+
+def test_openapi_v1():
+    response = client.get("/v1/openapi.json")
+    assert response.status_code == 200
+    schema = response.json()
+    assert "paths" in schema
+
+
+def test_security_headers():
+    response = client.get("/health")
+    assert response.headers.get("X-Content-Type-Options") == "nosniff"
+    assert response.headers.get("X-Frame-Options") == "DENY"
+
+
+# --- WebSocket /ws/simular ---
+
+def test_ws_simular_valido():
+    with client.websocket_connect("/ws/simular") as ws:
+        ws.send_json({"lat": 5, "lon": 5, "passos": 3})
+        passos_recebidos = []
+        while True:
+            msg = ws.receive_json()
+            if msg.get("done"):
+                assert msg["total_passos"] == 3
+                break
+            passos_recebidos.append(msg)
+            assert "passo" in msg
+            assert "posicao" in msg
+            assert "probabilidade_gelo" in msg
+        assert len(passos_recebidos) == 3
+
+
+def test_ws_simular_posicao_invalida():
+    with client.websocket_connect("/ws/simular") as ws:
+        ws.send_json({"lat": 9999, "lon": 9999, "passos": 2})
+        msg = ws.receive_json()
+        assert "erro" in msg
+
+
+def test_ws_simular_passos_clampados():
+    # passos=200 → clampado para 100 sem erro (diferente do POST que rejeita 422)
+    with client.websocket_connect("/ws/simular") as ws:
+        ws.send_json({"lat": 5, "lon": 5, "passos": 200})
+        count = 0
+        while True:
+            msg = ws.receive_json()
+            if msg.get("done"):
+                assert msg["total_passos"] == 100
+                break
+            count += 1
+        assert count == 100
