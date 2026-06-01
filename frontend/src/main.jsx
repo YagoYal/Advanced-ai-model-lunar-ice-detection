@@ -6,6 +6,12 @@ import "./leafletFix";
 import LandingPage from "./LandingPage";
 import { LanguageProvider } from "./i18n";
 
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(console.warn);
+  });
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <LanguageProvider>

@@ -9,13 +9,42 @@ if (!IS_DEV && API_URL.startsWith("http://")) {
 const API_KEY = import.meta.env.VITE_API_KEY ?? "";
 const authHeaders = API_KEY ? { "X-API-Key": API_KEY } : {};
 
-export async function analisar(lat, lon, signal) {
-  const res = await fetch(`${API_URL}/analisar`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders },
-    body: JSON.stringify({ lat, lon }),
-    signal,
-  });
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function fetchWithRetry(url, options, onRetry, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (options.signal?.aborted) throw new DOMException("Aborted", "AbortError");
+    try {
+      const res = await fetch(url, options);
+      if ((res.status === 502 || res.status === 503 || res.status === 504) && attempt < maxRetries - 1) {
+        onRetry?.(attempt + 1, maxRetries);
+        await sleep(4000 * (attempt + 1));
+        continue;
+      }
+      return res;
+    } catch (err) {
+      if (err.name === "AbortError") throw err;
+      if (attempt < maxRetries - 1) {
+        onRetry?.(attempt + 1, maxRetries);
+        await sleep(4000 * (attempt + 1));
+        continue;
+      }
+      throw err;
+    }
+  }
+}
+
+export async function analisar(lat, lon, signal, onRetry) {
+  const res = await fetchWithRetry(
+    `${API_URL}/analisar`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders },
+      body: JSON.stringify({ lat, lon }),
+      signal,
+    },
+    onRetry,
+  );
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail ?? `HTTP error ${res.status}`);
@@ -23,32 +52,57 @@ export async function analisar(lat, lon, signal) {
   return res.json();
 }
 
-export async function simular(lat, lon, passos = 10) {
-  const res = await fetch(`${API_URL}/simular`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders },
-    body: JSON.stringify({ lat, lon, passos }),
-  });
+export async function simular(lat, lon, passos = 10, onRetry) {
+  const res = await fetchWithRetry(
+    `${API_URL}/simular`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders },
+      body: JSON.stringify({ lat, lon, passos }),
+    },
+    onRetry,
+  );
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail ?? `HTTP error ${res.status}`);
   }
   return res.json();
+}
+
+// Grid polar: 3 latitudes × 4 longitudes × 2 polos = 24 pontos
+const POLAR_GRID = (() => {
+  const lats = [160, 170, 179, 20, 10, 0]; // 70N, 80N, 90N, 70S, 80S, 90S
+  const lons = [90, 180, 270, 359];        // 90°W, 0°, 90°E, 180°E
+  const pts = [];
+  for (const lat of lats)
+    for (const lon of lons)
+      pts.push({ lat, lon });
+  return pts;
+})();
+
+export async function fetchPolarGrid(onProgress) {
+  const total = POLAR_GRID.length;
+  const results = [];
+  const BATCH = 4;
+  for (let i = 0; i < total; i += BATCH) {
+    const batch = POLAR_GRID.slice(i, i + BATCH);
+    const settled = await Promise.allSettled(
+      batch.map((p) =>
+        analisar(p.lat, p.lon).then((d) => ({ lat: p.lat, lon: p.lon, ...d }))
+      )
+    );
+    for (const r of settled)
+      if (r.status === "fulfilled") results.push(r.value);
+    onProgress?.(Math.min(i + BATCH, total), total);
+    if (i + BATCH < total) await sleep(600);
+  }
+  return results;
 }
 
 /**
  * Conecta ao endpoint WebSocket /ws/simular e transmite os passos do rover em tempo real.
- *
- * @param {number} lat    - Latitude em índice de grade (0-179)
- * @param {number} lon    - Longitude em índice de grade (0-359)
- * @param {number} passos - Número de passos
- * @param {(step: object) => void} onStep  - Chamado a cada passo recebido
- * @param {(total: number) => void} onDone  - Chamado ao fim ({done: true})
- * @param {(err: Error) => void}   onError - Chamado em erro de conexão
- * @returns {() => void} Função de cleanup que fecha o WebSocket
  */
 export function wsSimular(lat, lon, passos, onStep, onDone, onError) {
-  // Deriva URL WebSocket a partir da URL HTTP da API
   const httpBase = API_URL.replace(/\/$/, "");
   const wsBase   = httpBase.replace(/^http/, "ws");
   const wsUrl    = `${wsBase}/ws/simular`;
@@ -91,7 +145,6 @@ export function wsSimular(lat, lon, passos, onStep, onDone, onError) {
   };
 
   ws.onclose = (event) => {
-    // Fecha anormal sem ter recebido {done:true} → reporta erro para fallback
     if (!doneReceived && event.code !== 1000 && event.code !== 1005) {
       onError(new Error(`WebSocket closed unexpectedly (code ${event.code})`));
     }

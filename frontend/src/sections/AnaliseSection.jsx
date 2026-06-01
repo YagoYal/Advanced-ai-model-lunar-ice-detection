@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, useInView } from "framer-motion";
 import {
-  MapContainer, TileLayer, useMapEvents, useMap, Marker, Popup,
+  MapContainer, TileLayer, useMapEvents, useMap, Marker, Popup, CircleMarker,
 } from "react-leaflet";
-import { analisar, simular } from "../services/api";
+import { analisar, simular, fetchPolarGrid } from "../services/api";
 import RoverPath from "../components/RoverPath";
 import { useT } from "../i18n";
 
@@ -11,6 +11,10 @@ function coordParaGrid(lat, lng) {
   const gridLat = Math.max(0, Math.min(179, Math.round(lat + 90)));
   const gridLon = Math.max(0, Math.min(359, Math.round(lng + 180)));
   return { gridLat, gridLon };
+}
+
+function gridToLeaflet(lat_grid, lon_grid) {
+  return [lat_grid - 90, lon_grid - 180];
 }
 
 function ClickHandler({ onClick }) {
@@ -41,18 +45,30 @@ export default function AnaliseSection() {
   const inView = useInView(ref, { threshold: 0.15, once: true });
   const [animDone, setAnimDone] = useState(false);
 
-  const [result,    setResult]    = useState(null);
-  const [loading,   setLoading]   = useState(false);
-  const [loadingRL, setLoadingRL] = useState(false);
-  const [ponto,     setPonto]     = useState(null);
-  const [historico, setHistorico] = useState([]);
-  const [erro,      setErro]      = useState(null);
-  const [caminho,    setCaminho]    = useState(null);
-  const [depthLayer, setDepthLayer] = useState(0); // 0=surface, 1=0.1m, 2=0.5m, 3=1.0m
-  const [polares, setPolares] = useState(null);
+  const [result,         setResult]         = useState(null);
+  const [loading,        setLoading]        = useState(false);
+  const [loadingRL,      setLoadingRL]      = useState(false);
+  const [ponto,          setPonto]          = useState(null);
+  const [historico,      setHistorico]      = useState([]);
+  const [erro,           setErro]           = useState(null);
+  const [caminho,        setCaminho]        = useState(null);
+  const [depthLayer,     setDepthLayer]     = useState(0);
+  const [polares,        setPolares]        = useState(null);
   const [loadingPolares, setLoadingPolares] = useState(false);
 
-  const abortRef = useRef(null);
+  // Feature 1: cold start UX
+  const [wakingAttempt, setWakingAttempt] = useState(null); // {n, max} | null
+
+  // Feature 2: polar heatmap
+  const [polarPoints,   setPolarPoints]   = useState([]);
+  const [loadingPolar,  setLoadingPolar]  = useState(false);
+  const [polarProgress, setPolarProgress] = useState({ done: 0, total: 0 });
+
+  // Feature 3: share
+  const [shareLabel, setShareLabel] = useState(null);
+
+  const abortRef   = useRef(null);
+  const initedRef  = useRef(false);
 
   useEffect(() => {
     if (inView && !animDone) {
@@ -68,19 +84,36 @@ export default function AnaliseSection() {
 
     setLoading(true);
     setErro(null);
+    setWakingAttempt(null);
     const { gridLat, gridLon } = coordParaGrid(lat, lng);
     try {
-      const data = await analisar(gridLat, gridLon, signal);
+      const data = await analisar(gridLat, gridLon, signal, (n, max) => setWakingAttempt({ n, max }));
       if (signal.aborted) return;
       setResult(data);
+      setWakingAttempt(null);
       setHistorico(prev => [...prev, { lat: lat.toFixed(2), lon: lng.toFixed(2), prob: data.probabilidade_gelo }]);
     } catch (err) {
       if (err.name === "AbortError") return;
       setErro(err.message ?? t.analise.errorBackend);
+      setWakingAttempt(null);
     } finally {
       if (!signal.aborted) setLoading(false);
     }
   }, [t]);
+
+  // Feature 3: read URL params on mount and auto-analyze
+  useEffect(() => {
+    if (initedRef.current) return;
+    initedRef.current = true;
+    const params = new URLSearchParams(window.location.search);
+    const lat = parseFloat(params.get("lat"));
+    const lon = parseFloat(params.get("lon"));
+    if (!isNaN(lat) && !isNaN(lon)) {
+      const coord = { lat, lng: lon };
+      setPonto(coord);
+      handleAnalisar(lat, lon);
+    }
+  }, [handleAnalisar]);
 
   const handleSimularRover = async () => {
     if (!ponto) return;
@@ -88,10 +121,12 @@ export default function AnaliseSection() {
     setErro(null);
     const { gridLat, gridLon } = coordParaGrid(ponto.lat, ponto.lng);
     try {
-      const data = await simular(gridLat, gridLon, 20);
+      const data = await simular(gridLat, gridLon, 20, (n, max) => setWakingAttempt({ n, max }));
+      setWakingAttempt(null);
       setCaminho(data.caminho);
     } catch (err) {
       setErro(err.message ?? t.analise.errorRover);
+      setWakingAttempt(null);
     } finally {
       setLoadingRL(false);
     }
@@ -113,12 +148,54 @@ export default function AnaliseSection() {
     }
   };
 
+  // Feature 2: polar heatmap
+  const handlePolarHeatmap = async () => {
+    if (loadingPolar) return;
+    setLoadingPolar(true);
+    setPolarPoints([]);
+    setPolarProgress({ done: 0, total: 24 });
+    try {
+      const pts = await fetchPolarGrid((done, total) => setPolarProgress({ done, total }));
+      setPolarPoints(pts);
+    } catch {
+      // silently ignore — partial results already set
+    } finally {
+      setLoadingPolar(false);
+    }
+  };
+
+  // Feature 3: share
+  const handleShare = () => {
+    if (!ponto) return;
+    const url = new URL(window.location.href);
+    url.searchParams.set("lat", ponto.lat.toFixed(2));
+    url.searchParams.set("lon", ponto.lng.toFixed(2));
+    window.history.replaceState(null, "", url.toString());
+    navigator.clipboard?.writeText(url.toString());
+    setShareLabel(t.analise.shareCopied);
+    setTimeout(() => setShareLabel(null), 2000);
+  };
+
   const handleSelect = (coord) => {
     setPonto(coord);
     setCaminho(null);
     setDepthLayer(0);
     handleAnalisar(coord.lat, coord.lng);
   };
+
+  const heatmapLabel = loadingPolar
+    ? (t.analise.heatmapLoading
+        .replace("{n}", polarProgress.done)
+        .replace("{total}", polarProgress.total))
+    : polarPoints.length > 0
+      ? t.analise.heatmapDone.replace("{n}", polarPoints.length)
+      : t.analise.heatmapBtn;
+
+  const wakingMsg = wakingAttempt
+    ? (wakingAttempt.n === 1
+        ? t.analise.waking
+        : t.analise.wakingRetry.replace("{n}", wakingAttempt.n))
+    : null;
 
   return (
     <section id="analise" ref={ref} style={{ scrollMarginTop: 70, padding: "100px 0" }}>
@@ -140,6 +217,44 @@ export default function AnaliseSection() {
             <p style={{ color: "#64748b", fontSize: "0.97rem" }}>
               {t.analise.instruction}
             </p>
+          </div>
+
+          {/* Feature 2: polar heatmap controls */}
+          <div style={{ display: "flex", gap: 10, marginBottom: 12, flexWrap: "wrap" }}>
+            <button
+              onClick={handlePolarHeatmap}
+              disabled={loadingPolar}
+              style={{
+                padding: "7px 16px",
+                borderRadius: 9,
+                border: "1px solid rgba(129,140,248,0.4)",
+                background: polarPoints.length > 0 ? "rgba(129,140,248,0.15)" : "rgba(129,140,248,0.07)",
+                color: "#818cf8",
+                fontSize: "0.84rem",
+                fontWeight: 500,
+                cursor: loadingPolar ? "wait" : "pointer",
+                opacity: loadingPolar ? 0.8 : 1,
+                transition: "background 0.15s",
+              }}
+            >
+              {heatmapLabel}
+            </button>
+            {polarPoints.length > 0 && (
+              <button
+                onClick={() => setPolarPoints([])}
+                style={{
+                  padding: "7px 14px",
+                  borderRadius: 9,
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(255,255,255,0.04)",
+                  color: "#64748b",
+                  fontSize: "0.84rem",
+                  cursor: "pointer",
+                }}
+              >
+                {t.analise.heatmapClear}
+              </button>
+            )}
           </div>
 
           {/* Plain div parent of MapContainer */}
@@ -176,12 +291,50 @@ export default function AnaliseSection() {
                 </Marker>
               )}
               {caminho && <RoverPath caminho={caminho} />}
+              {/* Feature 2: polar heatmap CircleMarkers */}
+              {polarPoints.map((p) => {
+                const pos = gridToLeaflet(p.lat, p.lon);
+                const color = probColor(p.probabilidade_gelo);
+                return (
+                  <CircleMarker
+                    key={`${p.lat}-${p.lon}`}
+                    center={pos}
+                    radius={9}
+                    fillColor={color}
+                    color={color}
+                    fillOpacity={0.72}
+                    weight={1.5}
+                  >
+                    <Popup>
+                      {pos[0]}°, {pos[1]}°<br />
+                      P(gelo) = {(p.probabilidade_gelo * 100).toFixed(1)}%
+                      {p.temperatura != null && <><br />{p.temperatura.toFixed(0)} K</>}
+                    </Popup>
+                  </CircleMarker>
+                );
+              })}
             </MapContainer>
           </div>
 
-          {(loading || loadingRL || erro) && (
+          {/* Feature 1: cold start + loading + error messages */}
+          {(loading || loadingRL || wakingMsg || erro) && (
             <div style={{ marginBottom: 20, textAlign: "center" }}>
-              {loading && (
+              {wakingMsg && (
+                <p style={{
+                  color: "#fbbf24",
+                  fontSize: "0.9rem",
+                  padding: "10px 18px",
+                  background: "rgba(251,191,36,0.08)",
+                  borderRadius: 10,
+                  border: "1px solid rgba(251,191,36,0.25)",
+                  display: "inline-block",
+                  marginBottom: 8,
+                  animation: "pulse 1.5s infinite",
+                }}>
+                  ⏳ {wakingMsg}
+                </p>
+              )}
+              {loading && !wakingMsg && (
                 <p style={{ color: "#7dd3fc", fontSize: "0.9rem", animation: "pulse 1.5s infinite" }}>
                   {t.analise.loadingAnalysis}
                 </p>
@@ -349,27 +502,46 @@ export default function AnaliseSection() {
                 </div>
               )}
 
-              <button
-                onClick={handleSimularRover}
-                disabled={loadingRL}
-                style={{
-                  marginTop: 22,
-                  padding: "10px 22px",
-                  borderRadius: 10,
-                  border: "none",
-                  cursor: loadingRL ? "not-allowed" : "pointer",
-                  background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
-                  color: "white",
-                  fontWeight: 500,
-                  fontSize: "0.9rem",
-                  opacity: loadingRL ? 0.6 : 1,
-                  transition: "opacity 0.2s, transform 0.2s",
-                }}
-                onMouseEnter={e => { if (!loadingRL) e.currentTarget.style.transform = "translateY(-2px)"; }}
-                onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}
-              >
-                {loadingRL ? t.analise.btnSimulating : t.analise.btnSimulate}
-              </button>
+              {/* Feature 3: share + simulate buttons */}
+              <div style={{ display: "flex", gap: 10, marginTop: 22, flexWrap: "wrap" }}>
+                <button
+                  onClick={handleSimularRover}
+                  disabled={loadingRL}
+                  style={{
+                    padding: "10px 22px",
+                    borderRadius: 10,
+                    border: "none",
+                    cursor: loadingRL ? "not-allowed" : "pointer",
+                    background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                    color: "white",
+                    fontWeight: 500,
+                    fontSize: "0.9rem",
+                    opacity: loadingRL ? 0.6 : 1,
+                    transition: "opacity 0.2s, transform 0.2s",
+                  }}
+                  onMouseEnter={e => { if (!loadingRL) e.currentTarget.style.transform = "translateY(-2px)"; }}
+                  onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}
+                >
+                  {loadingRL ? t.analise.btnSimulating : t.analise.btnSimulate}
+                </button>
+
+                <button
+                  onClick={handleShare}
+                  style={{
+                    padding: "10px 20px",
+                    borderRadius: 10,
+                    border: shareLabel ? "1px solid rgba(52,211,153,0.5)" : "1px solid rgba(255,255,255,0.12)",
+                    background: shareLabel ? "rgba(52,211,153,0.1)" : "rgba(255,255,255,0.04)",
+                    color: shareLabel ? "#34d399" : "#94a3b8",
+                    fontWeight: 500,
+                    fontSize: "0.9rem",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                >
+                  {shareLabel ?? t.analise.shareBtn}
+                </button>
+              </div>
             </div>
           )}
 
@@ -425,6 +597,7 @@ export default function AnaliseSection() {
               </ul>
             </div>
           )}
+
           <div style={{ marginTop: 32, padding: "24px 28px", borderRadius: 16, background: "rgba(15,23,42,0.85)", border: "1px solid rgba(255,255,255,0.07)" }}>
             <p style={{ color: "#38bdf8", fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>
               {t.analise.compareLabel}
