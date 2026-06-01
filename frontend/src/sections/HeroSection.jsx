@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { useT } from "../i18n";
 
-const METRIC_VALUES = ["0.997", "6/6", "0.0101", "1.000"];
+const METRIC_VALUES = ["0.991", "14/14", "0.0294", "1.000"];
 
 export default function HeroSection() {
   const { t } = useT();

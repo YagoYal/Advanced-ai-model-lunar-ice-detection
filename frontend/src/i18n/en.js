@@ -16,7 +16,7 @@ export default {
     subtext: "LRO/NASA · Vasavada 2012 thermal model · DQN rover autonomy.",
     btnAnalyze: "Analyze Ice",
     btnScience: "View Science",
-    validatedPSRs: "Validated PSRs",
+    validatedPSRs: "Benchmark",
   },
   sobre: {
     label: "Mission",

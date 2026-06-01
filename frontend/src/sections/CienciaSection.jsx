@@ -11,14 +11,14 @@ const FORMULA_META = [
 ];
 
 const METRIC_VALUES = [
-  { value: "0.997",  color: "#38bdf8" },
-  { value: "0.0101", color: "#818cf8" },
+  { value: "0.991",  color: "#38bdf8" },
+  { value: "0.0294", color: "#818cf8" },
   { value: "1.000",  color: "#34d399" },
-  { value: "6/6",    color: "#38bdf8" },
+  { value: "14/14",  color: "#38bdf8" },
   { value: "58.624", color: "#818cf8" },
-  { value: "14.656", color: "#34d399" },
+  { value: "14.700", color: "#34d399" },
   { value: "6",      color: "#38bdf8" },
-  { value: "~165",   color: "#818cf8" },
+  { value: "165.38", color: "#818cf8" },
 ];
 
 export default function CienciaSection() {
