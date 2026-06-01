@@ -2,7 +2,7 @@
 
 Plataforma de detecção de gelo lunar por IA com dados reais do LRO (Lunar Reconnaissance Orbiter), navegação autônoma de rover via DQN e interface web interativa.
 
-**Demo ao vivo:** [advanced-ai-model-lunar-ice-detecti.vercel.app](https://lunar-ice.vercel.app)
+**Demo ao vivo:** [lunar-ice.vercel.app](https://lunar-ice.vercel.app)
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20014594.svg)](https://doi.org/10.5281/zenodo.20014594)
 
@@ -178,8 +178,8 @@ Acc      : 0.998
 Cabeus      (LCROSS 2009)    prob=0.983   GELO    OK
 Shackleton  (LAMP UV)        prob=1.000   GELO    OK
 Haworth     (Mini-RF CPR)    prob=1.000   GELO    OK
-Nobile      (Diviner cold)   prob=0.000   GELO    !!  — baixa confiança (0.75)
-Amundsen    (PSR catalog)    prob=0.000   GELO    !!  — baixa confiança (0.70)
+Nobile      (Diviner cold)   prob=1.000   GELO    OK
+Amundsen    (PSR catalog)    prob=1.000   GELO    OK
 Hermite     (Paige 26K)      prob=1.000   GELO    OK
 Peary       (CPR norte)      prob=1.000   GELO    OK
 Whipple     (PSR norte)      prob=1.000   GELO    OK
@@ -189,7 +189,7 @@ Copernicus  (crater jovem)   prob=0.000   SEM     OK
 Tycho       (mid-lat)        prob=0.000   SEM     OK
 Mid-lat 40N (iluminado)      prob=0.000   SEM     OK
 Mid-lat 40S (iluminado)      prob=0.000   SEM     OK
-Total: 12/14 corretos (86%) | PSRs: 6/8 | Negativos: 6/6
+Total: 14/14 corretos (100%) | PSRs: 8/8 | Negativos: 6/6
 ```
 
 ---
@@ -230,7 +230,7 @@ make demo-rl     # roda agente treinado e exibe trajetória
 ## Testes
 
 ```bash
-make test           # 15 testes backend (pytest)
+make test           # 25 testes backend (pytest)
 make test-frontend  # 13 testes frontend (vitest — api + RoverPath)
 make test-all       # ambos
 ```
@@ -239,14 +239,14 @@ make test-all       # ambos
 
 ## Deploy
 
-**Produção (Railway + Vercel):**
+**Produção (Fly.io + Vercel):**
 
 | Serviço | Plataforma | URL |
 |---|---|---|
-| Backend (FastAPI) | Railway | `advanced-ai-model-lunar-ice-detection-production.up.railway.app` |
-| Frontend (React) | Vercel | [advanced-ai-model-lunar-ice-detecti.vercel.app](https://advanced-ai-model-lunar-ice-detecti.vercel.app) |
+| Backend (FastAPI) | Fly.io (scale-to-zero, gru) | [lunar-ice-api.fly.dev](https://lunar-ice-api.fly.dev) |
+| Frontend (React) | Vercel (auto-deploy via GitHub) | [lunar-ice.vercel.app](https://lunar-ice.vercel.app) |
 
-Variáveis obrigatórias no Railway: `ENV=production`, `API_KEY`, `ALLOWED_ORIGINS`, `DATA_MODE=real`.
+Variáveis obrigatórias no Fly.io: `API_KEY`, `ALLOWED_ORIGINS` (secrets via `flyctl secrets set`).
 Variáveis obrigatórias no Vercel: `VITE_API_URL`, `VITE_API_KEY`. Root Directory: `frontend`.
 
 **Docker (local):**
