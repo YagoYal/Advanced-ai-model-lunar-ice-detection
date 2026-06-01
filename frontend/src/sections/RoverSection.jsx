@@ -11,7 +11,7 @@ import { wsSimular, simular } from "../services/api";
 import RoverPath from "../components/RoverPath";
 import { useT } from "../i18n";
 
-const CONVERGENCE = [
+const CONVERGENCE_INIT = [
   { episode: 100, reward: 136, ice_max: 0.720 },
   { episode: 200, reward: 151, ice_max: 0.890 },
   { episode: 300, reward: 161, ice_max: 1.000 },
@@ -53,7 +53,7 @@ function ClickHandler({ onClick }) {
 }
 
 // Painel de animação WebSocket — componente separado para evitar re-renders do mapa
-function RoverSimPanel() {
+function RoverSimPanel({ onSimComplete }) {
   const { t } = useT();
 
   const [ponto,      setPonto]      = useState(null);   // { lat, lng } em graus Leaflet
@@ -65,6 +65,7 @@ function RoverSimPanel() {
   const [concluida,  setConcluida]  = useState(false);
 
   const cleanupRef = useRef(null);
+  const caminhoRef  = useRef([]);
 
   // Cancela WebSocket ao desmontar
   useEffect(() => () => { cleanupRef.current?.(); }, []);
@@ -86,6 +87,7 @@ function RoverSimPanel() {
     const { gridLat, gridLon } = coordParaGrid(ponto.lat, ponto.lng);
     const PASSOS = 20;
 
+    caminhoRef.current = [];
     setCaminho([]);
     setErro(null);
     setConcluida(false);
@@ -94,8 +96,18 @@ function RoverSimPanel() {
     setSimAtiva(true);
 
     const onStep = (step) => {
+      caminhoRef.current = [...caminhoRef.current, step];
       setCaminho(prev => [...prev, step]);
       setPassoAtual(prev => prev + 1);
+    };
+
+    const notifyComplete = (path) => {
+      if (!path.length) return;
+      const probs = path.map(s => s.probabilidade_gelo ?? 0);
+      const ice_max = Math.max(...probs);
+      // reward approximation: Σ(ice_prob * 10 - 0.5 movement cost)
+      const reward = Math.round(probs.reduce((acc, p) => acc + p * 10 - 0.5, 0) * 10) / 10;
+      onSimComplete?.({ ice_max: Math.round(ice_max * 1000) / 1000, reward });
     };
 
     const onDone = (total) => {
@@ -103,6 +115,7 @@ function RoverSimPanel() {
       setConcluida(true);
       setPassoAtual(total);
       cleanupRef.current = null;
+      notifyComplete(caminhoRef.current);
     };
 
     const onError = async (err) => {
@@ -112,9 +125,11 @@ function RoverSimPanel() {
       // Fallback para POST /simular
       try {
         const data = await simular(gridLat, gridLon, PASSOS);
-        setCaminho(data.caminho ?? []);
-        setPassoAtual(data.caminho?.length ?? 0);
+        const path = data.caminho ?? [];
+        setCaminho(path);
+        setPassoAtual(path.length);
         setConcluida(true);
+        notifyComplete(path);
       } catch (fallbackErr) {
         setErro(fallbackErr.message ?? "Erro ao simular rover.");
       } finally {
@@ -301,6 +316,14 @@ export default function RoverSection() {
   const { t } = useT();
   const ref = useRef(null);
   const inView = useInView(ref, { threshold: 0.15, once: true });
+  const [convergenceData, setConvergenceData] = useState(CONVERGENCE_INIT);
+
+  const handleSimComplete = useCallback(({ reward, ice_max }) => {
+    setConvergenceData(prev => {
+      const lastEp = prev[prev.length - 1].episode;
+      return [...prev, { episode: lastEp + 100, reward, ice_max }];
+    });
+  }, []);
 
   return (
     <section id="rover" ref={ref} style={{ scrollMarginTop: 70, padding: "100px 0", background: "rgba(15,23,42,0.45)" }}>
@@ -410,9 +433,14 @@ export default function RoverSection() {
               <p style={{ color: "#94a3b8", fontWeight: 600, marginBottom: 20, fontSize: "0.88rem" }}>
                 {t.rover.convergenceTitle}
               </p>
+              {convergenceData.length > 5 && (
+                <p style={{ color: "#34d399", fontSize: "0.78rem", marginBottom: 8, textAlign: "right" }}>
+                  +{convergenceData.length - 5} simulações ao vivo
+                </p>
+              )}
               <div style={{ flex: 1, minHeight: "clamp(220px, 40vh, 300px)" }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={CONVERGENCE} margin={{ top: 8, right: 16, left: -10, bottom: 20 }}>
+                  <LineChart data={convergenceData} margin={{ top: 8, right: 16, left: -10, bottom: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
                     <XAxis
                       dataKey="episode"
@@ -448,7 +476,7 @@ export default function RoverSection() {
         </motion.div>
 
         {/* Painel de simulação WebSocket — fora do motion.div para respeitar a regra do MapContainer */}
-        <RoverSimPanel />
+        <RoverSimPanel onSimComplete={handleSimComplete} />
       </div>
     </section>
   );
