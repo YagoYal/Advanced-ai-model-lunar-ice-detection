@@ -25,7 +25,7 @@ export default {
     cards: [
       {
         title: "Protótipo",
-        desc: "CNN + physics encoder treinada em dados sintéticos LRO. Validação em 6 PSRs conhecidos. Baseline científico estabelecido.",
+        desc: "CNN + physics encoder treinada em dados sintéticos LRO. Validação em 14 PSRs conhecidos. Baseline científico estabelecido.",
       },
       {
         title: "Científico",
@@ -43,7 +43,7 @@ export default {
       },
       {
         label: "PSRs Confirmados",
-        desc: "11 regiões confirmadas por múltiplos instrumentos (LCROSS, LAMP, Diviner, Mini-RF) · Gelo estável <110K",
+        desc: "14 regiões confirmadas por múltiplos instrumentos (LCROSS, LAMP, Diviner, Mini-RF) · Gelo estável <110K",
       },
       {
         label: "Base Científica",
@@ -87,7 +87,7 @@ export default {
       { label: "F1 Score" },
       { label: "Val Loss" },
       { label: "Recall" },
-      { label: "PSRs Validados" },
+      { label: "Benchmark PSRs" },
       { label: "Exemplos" },
       { label: "Positivos" },
       { label: "obs_dim" },

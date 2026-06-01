@@ -25,7 +25,7 @@ export default {
     cards: [
       {
         title: "Prototype",
-        desc: "CNN + physics encoder trained on synthetic LRO data. Validation on 6 known PSRs. Scientific baseline established.",
+        desc: "CNN + physics encoder trained on synthetic LRO data. Validation on 14 known PSRs. Scientific baseline established.",
       },
       {
         title: "Scientific",
@@ -43,7 +43,7 @@ export default {
       },
       {
         label: "Confirmed PSRs",
-        desc: "11 regions confirmed by multiple instruments (LCROSS, LAMP, Diviner, Mini-RF) · Stable ice <110K",
+        desc: "14 regions confirmed by multiple instruments (LCROSS, LAMP, Diviner, Mini-RF) · Stable ice <110K",
       },
       {
         label: "Scientific Basis",
@@ -87,7 +87,7 @@ export default {
       { label: "F1 Score" },
       { label: "Val Loss" },
       { label: "Recall" },
-      { label: "Validated PSRs" },
+      { label: "Benchmark PSRs" },
       { label: "Examples" },
       { label: "Positives" },
       { label: "obs_dim" },
