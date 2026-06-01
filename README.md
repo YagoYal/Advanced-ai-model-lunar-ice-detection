@@ -2,7 +2,7 @@
 
 Plataforma de detecção de gelo lunar por IA com dados reais do LRO (Lunar Reconnaissance Orbiter), navegação autônoma de rover via DQN e interface web interativa.
 
-**Demo ao vivo:** [advanced-ai-model-lunar-ice-detecti.vercel.app](https://advanced-ai-model-lunar-ice-detecti.vercel.app)
+**Demo ao vivo:** [advanced-ai-model-lunar-ice-detecti.vercel.app](https://lunar-ice.vercel.app)
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20014594.svg)](https://doi.org/10.5281/zenodo.20014594)
 
