@@ -12,7 +12,24 @@ logger = logging.getLogger(__name__)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 MODEL_PATH = "model/pesos.pth"
+ONNX_PATH  = "model/lunar_ice.onnx"
 
+# --- ONNX session (inferência determinística — rover sim) ---
+_ort_session = None
+try:
+    import onnxruntime as ort
+    if os.path.exists(ONNX_PATH):
+        _ort_session = ort.InferenceSession(
+            ONNX_PATH,
+            providers=["CPUExecutionProvider"],
+        )
+        logger.info("ONNX Runtime: sessão carregada (%s)", ONNX_PATH)
+    else:
+        logger.warning("ONNX não encontrado em %s — usando PyTorch para inferência determinística", ONNX_PATH)
+except ImportError:
+    logger.warning("onnxruntime não instalado — usando PyTorch para inferência determinística")
+
+# --- PyTorch model (MC Dropout em prever_com_incerteza) ---
 modelo = LunarCNN().to(DEVICE)
 
 if os.path.exists(MODEL_PATH):
@@ -20,7 +37,7 @@ if os.path.exists(MODEL_PATH):
         modelo.load_state_dict(
             torch.load(MODEL_PATH, map_location=DEVICE, weights_only=True)
         )
-        logger.info("Modelo carregado com pesos treinados")
+        logger.info("Modelo PyTorch carregado com pesos treinados")
     except Exception as e:
         logger.warning("Erro ao carregar pesos: %s", e)
 else:
@@ -90,12 +107,20 @@ def features_fisicas(insolacao, lat, temp_superficie=None):
 
 
 def modelo_hibrido(imagem, insolacao, temperatura=None, lat=0):
+    """Inferência determinística — usa ONNX RT se disponível, fallback PyTorch."""
+    if _ort_session is not None:
+        x   = preprocessar_imagem(imagem).cpu().numpy()          # [1,1,64,64]
+        env = features_fisicas(insolacao, lat, temp_superficie=temperatura).cpu().numpy()  # [1,5]
+        prob = _ort_session.run(
+            ["probabilidade"],
+            {"imagem": x, "features": env},
+        )[0][0][0]
+        return float(np.clip(prob, 0.0, 1.0))
+
     x   = preprocessar_imagem(imagem)
     env = features_fisicas(insolacao, lat, temp_superficie=temperatura)
-
     with torch.no_grad():
         prob = modelo(x, env).item()
-
     return float(np.clip(prob, 0.0, 1.0))
 
 
