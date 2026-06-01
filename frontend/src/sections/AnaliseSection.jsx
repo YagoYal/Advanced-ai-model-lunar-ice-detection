@@ -49,6 +49,8 @@ export default function AnaliseSection() {
   const [erro,      setErro]      = useState(null);
   const [caminho,    setCaminho]    = useState(null);
   const [depthLayer, setDepthLayer] = useState(0); // 0=surface, 1=0.1m, 2=0.5m, 3=1.0m
+  const [polares, setPolares] = useState(null);
+  const [loadingPolares, setLoadingPolares] = useState(false);
 
   const abortRef = useRef(null);
 
@@ -92,6 +94,22 @@ export default function AnaliseSection() {
       setErro(err.message ?? t.analise.errorRover);
     } finally {
       setLoadingRL(false);
+    }
+  };
+
+  const handleCompararPolos = async () => {
+    setLoadingPolares(true);
+    setPolares(null);
+    try {
+      const [norte, sul] = await Promise.all([
+        analisar(Math.round(88 + 90), Math.round(33 + 180)),
+        analisar(Math.round(-90 + 90), Math.round(0 + 180)),
+      ]);
+      setPolares({ norte, sul });
+    } catch (err) {
+      setErro(err.message ?? t.analise.errorBackend);
+    } finally {
+      setLoadingPolares(false);
     }
   };
 
@@ -252,6 +270,15 @@ export default function AnaliseSection() {
                     )}
                   </div>
                 )}
+
+                {result.altitude_m != null && (
+                  <div>
+                    <p style={{ color: "#64748b", fontSize: "0.78rem", marginBottom: 6 }}>{t.analise.altitude}</p>
+                    <p style={{ color: "#e2e8f0", fontWeight: 600 }}>
+                      {result.altitude_m >= 0 ? "+" : ""}{result.altitude_m.toFixed(0)} m
+                    </p>
+                  </div>
+                )}
               </div>
 
               {(result.temperatura != null || result.temperatura_subsolo != null) && (
@@ -398,6 +425,86 @@ export default function AnaliseSection() {
               </ul>
             </div>
           )}
+          <div style={{ marginTop: 32, padding: "24px 28px", borderRadius: 16, background: "rgba(15,23,42,0.85)", border: "1px solid rgba(255,255,255,0.07)" }}>
+            <p style={{ color: "#38bdf8", fontSize: "0.78rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>
+              {t.analise.compareLabel}
+            </p>
+            <h3 style={{ color: "#e2e8f0", fontWeight: 600, fontSize: "1rem", marginBottom: 6 }}>
+              {t.analise.compareTitle}
+            </h3>
+            <p style={{ color: "#64748b", fontSize: "0.82rem", marginBottom: 18 }}>
+              {t.analise.compareSubtitle}
+            </p>
+
+            <button
+              onClick={handleCompararPolos}
+              disabled={loadingPolares}
+              style={{
+                padding: "9px 20px",
+                borderRadius: 10,
+                border: "1px solid rgba(56,189,248,0.35)",
+                cursor: loadingPolares ? "not-allowed" : "pointer",
+                background: "rgba(56,189,248,0.08)",
+                color: "#38bdf8",
+                fontWeight: 500,
+                fontSize: "0.88rem",
+                opacity: loadingPolares ? 0.6 : 1,
+                transition: "opacity 0.2s, transform 0.2s",
+                marginBottom: polares ? 24 : 0,
+              }}
+              onMouseEnter={e => { if (!loadingPolares) e.currentTarget.style.transform = "translateY(-2px)"; }}
+              onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}
+            >
+              {loadingPolares ? t.analise.compareBtnLoading : t.analise.compareBtn}
+            </button>
+
+            {polares && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 20 }}>
+                {[
+                  { label: t.analise.compareNorth, data: polares.norte, color: "#818cf8", loc: "Peary (88.6°N, 33°E)" },
+                  { label: t.analise.compareSouth, data: polares.sul,   color: "#34d399", loc: "Shackleton (90°S, 0°)" },
+                ].map(({ label, data, color, loc }) => (
+                  <div key={label} style={{
+                    padding: "18px 20px",
+                    borderRadius: 12,
+                    background: "rgba(0,0,0,0.25)",
+                    border: `1px solid ${color}33`,
+                  }}>
+                    <p style={{ color, fontWeight: 700, fontSize: "0.88rem", marginBottom: 4 }}>{label}</p>
+                    <p style={{ color: "#475569", fontSize: "0.75rem", marginBottom: 14 }}>{loc}</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div>
+                        <p style={{ color: "#64748b", fontSize: "0.75rem", marginBottom: 3 }}>{t.analise.iceProb}</p>
+                        <p style={{ fontSize: "1.6rem", fontWeight: 700, color: probColor(data.probabilidade_gelo), lineHeight: 1 }}>
+                          {(data.probabilidade_gelo * 100).toFixed(1)}%
+                        </p>
+                      </div>
+                      {data.temperatura != null && (
+                        <div>
+                          <p style={{ color: "#64748b", fontSize: "0.75rem", marginBottom: 3 }}>{t.analise.tempSurface}</p>
+                          <p style={{ color: "#e2e8f0", fontWeight: 600, fontSize: "0.92rem" }}>{data.temperatura.toFixed(1)} K</p>
+                        </div>
+                      )}
+                      {data.insolacao != null && (
+                        <div>
+                          <p style={{ color: "#64748b", fontSize: "0.75rem", marginBottom: 3 }}>{t.analise.insolation}</p>
+                          <p style={{ color: "#e2e8f0", fontWeight: 600, fontSize: "0.92rem" }}>{data.insolacao.toFixed(1)} W/m²</p>
+                        </div>
+                      )}
+                      {data.confianca != null && (
+                        <div>
+                          <p style={{ color: "#64748b", fontSize: "0.75rem", marginBottom: 3 }}>{t.analise.confidence}</p>
+                          <p style={{ color: "#e2e8f0", fontWeight: 600, fontSize: "0.92rem" }}>
+                            {t.analise.confiancaMap[data.confianca] ?? data.confianca}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </motion.div>
       </div>
     </section>

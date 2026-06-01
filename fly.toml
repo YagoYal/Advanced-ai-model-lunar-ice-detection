@@ -1,0 +1,35 @@
+app = "lunar-ice-api"
+primary_region = "gru"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  ENV        = "production"
+  LOG_LEVEL  = "info"
+  PYTHONPATH = "/app"
+  DATA_MODE  = "real"
+
+[http_service]
+  internal_port        = 8000
+  force_https          = true
+  auto_stop_machines   = "stop"
+  auto_start_machines  = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type       = "requests"
+    soft_limit = 10
+    hard_limit = 25
+
+  [[http_service.checks]]
+    grace_period = "35s"
+    interval     = "30s"
+    method       = "GET"
+    path         = "/health"
+    timeout      = "10s"
+
+[[vm]]
+  memory   = "512mb"
+  cpu_kind = "shared"
+  cpus     = 1

@@ -139,13 +139,13 @@ function RoverSimPanel() {
     <div style={{ marginTop: 52 }}>
       <div style={{ textAlign: "center", marginBottom: 28 }}>
         <p style={{ color: "#818cf8", fontSize: "0.8rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>
-          Live Demo
+          {t.rover.simPanel.liveDemo}
         </p>
         <h3 style={{ color: "#e2e8f0", fontWeight: 600, fontSize: "clamp(1.1rem, 2.5vw, 1.5rem)", marginBottom: 10 }}>
-          Rover Trajectory Simulation
+          {t.rover.simPanel.title}
         </h3>
         <p style={{ color: "#64748b", fontSize: "0.87rem" }}>
-          {simAtiva ? "Simulation in progress — real-time WebSocket stream" : "Click on the map to set the starting point, then simulate"}
+          {simAtiva ? t.rover.simPanel.statusActive : t.rover.simPanel.statusIdle}
         </p>
       </div>
 
@@ -177,7 +177,7 @@ function RoverSimPanel() {
           {ponto && (
             <Marker position={ponto}>
               <Popup>
-                Start: {ponto.lat.toFixed(2)}° / {ponto.lng.toFixed(2)}°
+                {t.rover.simPanel.startPopup}: {ponto.lat.toFixed(2)}° / {ponto.lng.toFixed(2)}°
               </Popup>
             </Marker>
           )}
@@ -205,7 +205,7 @@ function RoverSimPanel() {
           onMouseEnter={e => { if (ponto && !simAtiva) e.currentTarget.style.transform = "translateY(-2px)"; }}
           onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)")}
         >
-          {simAtiva ? "Simulating..." : "Simulate Rover (20 steps)"}
+          {simAtiva ? t.rover.simPanel.btnSimulating : t.rover.simPanel.btnSimulate}
         </button>
 
         {simAtiva && (
@@ -223,15 +223,15 @@ function RoverSimPanel() {
               transition: "opacity 0.2s",
             }}
           >
-            Cancel
+            {t.rover.simPanel.cancel}
           </button>
         )}
 
         {(simAtiva || concluida) && totalPassos !== null && (
           <span style={{ color: "#94a3b8", fontSize: "0.88rem" }}>
-            Step {passoAtual} / {totalPassos}
+            {t.rover.simPanel.step} {passoAtual} / {totalPassos}
             {concluida && (
-              <span style={{ color: "#34d399", marginLeft: 8 }}>— complete</span>
+              <span style={{ color: "#34d399", marginLeft: 8 }}>— {t.rover.simPanel.complete}</span>
             )}
           </span>
         )}

@@ -1,5 +1,5 @@
 node_modules/
-frontend/node_modules/
+frontend/
 data/raw/
 data/external/
 .env
@@ -11,6 +11,7 @@ __pycache__/
 *.pyc
 *.pyo
 .git/
+.claude/
 experiments/
 docs/
 venv/
@@ -18,5 +19,4 @@ venv/
 env/
 *.log
 .pytest_cache/
-frontend/dist/
-frontend/build/
+roadmap.md
