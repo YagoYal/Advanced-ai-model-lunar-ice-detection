@@ -189,6 +189,27 @@
 - [ ] Validação com dados da missão PRIME-1 / VIPER (quando disponíveis publicamente)
 - [ ] Submissão como ferramenta auxiliar para missão Artemis III
 
+### P6 — Interpretabilidade científica ✓
+
+- [x] GradCAM sobre `CNNEncoder` — hook em `conv[10]` (ReLU 16×16×64), upsample 64×64 (`model/interpret.py`)
+- [x] SHAP sobre `PhysicsEncoder` — `GradientExplainer` com wrapper de imagem zero; fallback gradient×input (`shap_attribution`)
+- [x] Calibration plot: MC Dropout 30 passes, reliability diagram + ECE (`calibration_curve`)
+- [x] Relatório automático por coordenada: `run_interpret.py` gera JSON + PNGs; `/analisar` retorna `physics_attribution` em tempo real
+
+### P7 — Robustez e generalização (médio prazo)
+
+- [ ] Cross-validation por quadrante polar: treinar sem polo sul → validar no polo sul (e vice-versa)
+- [ ] Teste de distribution shift: injetar erro sistemático de ±5K no Diviner e medir degradação de F1
+- [ ] Calibration curve (reliability diagram) para MC Dropout — verificar se σ² predito reflete incerteza real
+
+---
+
+## Fase 9 — Da ferramenta para a ciência
+
+- [ ] Script reprodutível: gerar todos os plots do `paper.tex` a partir dos `.npy` locais (figura única por comando)
+- [ ] Submissão do dataset para PDS (Planetary Data System NASA) — licença pública, citável independentemente do código
+- [ ] Submissão de artigo: Icarus / JGR Planets / MNRAS (manuscrito `paper.tex` já existe — requer P6 completo antes)
+
 ---
 
 ## Métricas de estado atual

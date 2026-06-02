@@ -18,6 +18,7 @@ from autonomy.environment import AmbienteLunar
 from autonomy.planner import Planner
 from autonomy.rover import Rover
 from model.hybrid_model import modelo_hibrido, prever_com_incerteza, tempo_lunar
+from model.interpret import physics_attribution
 from model.physics import insolacao_dinamica
 
 class _JsonFormatter(logging.Formatter):
@@ -287,6 +288,11 @@ def analisar(req: RequestAnalise, request: Request, _: None = Depends(verificar_
         altitude_m_raw = ambiente.get_altitude((req.lat, req.lon))
         altitude_m = round(altitude_m_raw, 1) if altitude_m_raw is not None else None
 
+        try:
+            attr = physics_attribution(lat=lat_graus, insolacao=insolacao, temperatura=temperatura)
+        except Exception:
+            attr = None
+
         logger.info("analisar", extra={
             "endpoint": "/analisar",
             "lat": req.lat, "lon": req.lon,
@@ -302,9 +308,10 @@ def analisar(req: RequestAnalise, request: Request, _: None = Depends(verificar_
             "temperatura": float(temperatura),
             "temperatura_subsolo": temp_subsolo,
             "insolacao": float(insolacao),
-            "insolacao_atual": round(insol_atual, 2),   # instantânea no ciclo lunar atual
+            "insolacao_atual": round(insol_atual, 2),
             "fase_lunar": round(t_lunar, 4),
             "altitude_m": altitude_m,
+            "physics_attribution": attr,
         }
     except HTTPException:
         raise
