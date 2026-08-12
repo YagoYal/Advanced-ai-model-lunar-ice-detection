@@ -5,21 +5,22 @@ from backend.main import app
 
 client = TestClient(app)
 
-# Coordenadas fixas de PSRs reais (Shackleton, equador) só fazem sentido contra a
-# grade real 180x360 — em DATA_MODE=mock a grade é sintética 64x64 sem nenhum
-# padrão real de PSR, então lon=180 fica fora dos limites (achado 2026-08-11: CI
-# roda com DATA_MODE=mock e esses 2 testes falhavam com 400, não por bug do
-# modelo, mas porque a grade carregada é pequena demais pras coordenadas fixas).
-_H, _W = client.get("/").json().get("dimensoes_mapa", [0, 0])
-_precisa_grade_real = pytest.mark.skipif(
-    _H < 91 or _W < 181,
-    reason=(
-        f"grade carregada ({_H}x{_W}) menor que as coordenadas fixas do teste "
-        "(precisa >=91x181) — normal em DATA_MODE=mock, que não modela PSRs reais; "
-        "testar Shackleton/equador contra dado sintético não teria sinal válido "
-        "mesmo se a grade coubesse"
-    ),
-)
+# Coordenadas fixas de PSRs reais (Shackleton, equador) só têm sinal válido
+# contra dado físico real (insolação/temperatura de verdade), nunca contra
+# DATA_MODE=mock. Achado 2026-08-11/12, corrigido em 2 rounds:
+#   1ª tentativa (errada, paliativa): supôs que a grade mock local (64x64, só
+#      existente na máquina do dev, nunca commitada) causava 400 por bounds —
+#      e fez skip condicional nisso. Não reproduzia o CI real.
+#   2ª investigação (correta): num checkout limpo de verdade (sem
+#      data/processed/lro/mock/, que não é tracked em git nem gerado pelo
+#      Dockerfile), backend/main.py cai no fallback de `carregar_mapas()` —
+#      grade 180x360 de RUÍDO ALEATÓRIO (np.random.rand), não um erro de bounds.
+#      Os testes recebem 200 com prob=0.00006 (Shackleton) / 0.90 (equador) —
+#      exatamente o oposto do esperado, porque a asserção científica não tem
+#      NENHUM sinal válido contra ruído puro, com qualquer tamanho de grade.
+# Fix real: marcar como `real_data` e excluir do step rápido de mock no CI —
+# rodam só no step que já gera dado real de verdade (ver docker-ci.yml).
+_precisa_dado_real = pytest.mark.real_data
 
 
 def test_health():
@@ -159,7 +160,7 @@ def test_analisar_campos_completos():
     assert data["confianca"] in ("alta", "moderada", "baixa")
 
 
-@_precisa_grade_real
+@_precisa_dado_real
 def test_analisar_psr_sul_shackleton():
     # Shackleton -89.9° → lat_idx=0, lon_idx=180 — PSR confirmado (LAMP/Gladstone 2010)
     response = client.post("/analisar", json={"lat": 0, "lon": 180})
@@ -168,7 +169,7 @@ def test_analisar_psr_sul_shackleton():
     assert data["probabilidade_gelo"] >= 0.5, "PSR sul deve ter probabilidade >= 0.5"
 
 
-@_precisa_grade_real
+@_precisa_dado_real
 def test_analisar_equador_baixa_prob():
     # Equador iluminado — sem gelo esperado
     response = client.post("/analisar", json={"lat": 90, "lon": 180})
