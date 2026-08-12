@@ -1,6 +1,6 @@
 # Lunar Ice Intelligence — Roadmap
 
-> **Versão:** 1.0.0 · **DOI:** [10.5281/zenodo.20014594](https://doi.org/10.5281/zenodo.20014594) · **Última revisão:** 2026-08-12
+> **Versão:** 1.0.0 · **DOI software:** [10.5281/zenodo.20014594](https://doi.org/10.5281/zenodo.20014594) · **DOI paper:** [10.5281/zenodo.21897740](https://doi.org/10.5281/zenodo.21897740) · **Última revisão:** 2026-08-12
 
 ---
 
@@ -49,7 +49,9 @@
 
 ### Treinamento
 - [x] `LunarDataset`: 58 624 exemplos, 25% positivos, oversample 30% mínimo
-- [x] Loss: `FocalLoss` (α=0.75, γ=2.0) — substituiu BCELoss
+- [x] Loss: BCE ponderada (`pos_weight=n_neg/n_pos`, compensa desbalanço 3:1) — `FocalLoss`
+      (α=0.75, γ=2.0) foi tentada e **removida**: causava colapso degenerado de treino
+      (ver `model/train.py:63`, [[project-state]])
 - [x] Otimizador: `AdamW` (lr=1e-3, weight_decay=1e-4)
 - [x] Scheduler: `CosineAnnealingLR`
 - [x] 30 épocas padrão (configurável via `TRAIN_EPOCHS`)
@@ -231,15 +233,21 @@
       positivos nos controles negativos); nova subseção "Out-of-Distribution Generalisation" com o
       achado do P7 (falha de generalização em quadrante polar nunca visto). 3 referências bibliográficas
       novas (Selvaraju 2017, Lundberg & Lee 2017, Gal & Ghahramani 2016).
-- [ ] **Recompilar `paper.pdf`** — sem compilador LaTeX local disponível nesta sessão; braces/citações
-      checados manualmente mas o PDF publicado ainda reflete a versão antiga. Necessário antes de submeter.
-- [x] **`paper.pdf` recompilado** (2026-08-11) — via Docker `texlive/texlive:latest`
-      (sem LaTeX instalado localmente), 2 passes pdflatex, 12 páginas, sem erro/referência
-      quebrada. `paper.pdf` é gitignored (build artifact) — regenerar localmente antes de
-      qualquer submissão futura se `paper.tex` mudar de novo.
+- [x] **`paper.pdf` recompilado** — via Docker `texlive/texlive:latest` (sem LaTeX instalado
+      localmente), 2 passes pdflatex, 12 páginas, sem erro/referência quebrada. Recompilado e
+      reverificado duas vezes: 2026-08-11 (primeira sync) e 2026-08-12 (rebuild do zero, byte-
+      idêntico ao anterior — confirma que o conteúdo já estava correto). `paper.pdf` é gitignored
+      (build artifact) — regenerar localmente antes de qualquer submissão futura se `paper.tex`
+      mudar de novo.
+- [x] **Publicado no Zenodo como preprint separado** (2026-08-12): DOI `10.5281/zenodo.21897740`,
+      CC-BY 4.0, linkado ao DOI do software (`20014594`) via "Is supplemented by"/"Is supplement to"
+      em ambos os registros, e nos 2 works do ORCID via identifier "Part of". `CITATION.cff` e
+      `21897740.bib` commitados em `main`.
 - [ ] Script reprodutível: gerar todos os plots do `paper.tex` a partir dos `.npy` locais (figura única por comando)
 - [ ] Submissão do dataset para PDS (Planetary Data System NASA) — licença pública, citável independentemente do código
-- [ ] Submissão de artigo: Icarus / JGR Planets / MNRAS (manuscrito e PDF prontos — falta revisão humana final e escolha do journal-alvo)
+- [ ] **Submissão de artigo a journal** (Icarus / JGR Planets / MNRAS): manuscrito publicado como
+      preprint citável (DOI acima), mas **ainda não submetido a nenhum journal** — falta revisão
+      humana final e escolha do journal-alvo. Pronto ≠ feito; sem novidade desde 2026-08-11.
 
 ---
 
@@ -288,13 +296,13 @@ tudo abaixo já mergeado e pushado em `main`.
 
 | Componente | Estado | Métrica |
 |---|---|---|
-| LunarCNN | Produção | F1=0.991 · Recall=1.000 · val_loss=0.0294 · Focal Loss α=0.75 γ=2.0 |
+| LunarCNN | Produção | F1=0.991 · Recall=1.000 · val_loss=0.0294 · BCE ponderada (pos_weight, não Focal Loss) |
 | ONNX | Produção (Fly.io) | opset 17 · dynamic batch · inferência determinística |
 | Validação PSR | Produção | **14/14 (100%)** |
 | DQN Rover | Produção | 500 ep · PER SumTree · Double DQN · reward~165.38 · ice_max=1.000 |
-| Backend API | Produção* | FastAPI 0.141.1 + Starlette 1.6.0 · 6 endpoints REST + WebSocket /ws/simular · /v1/docs · Fly.io scale-to-zero — *`fly deploy` pendente pra pegar fix de CVE (2026-08-12) |
-| Frontend | Produção | React 18.3.1 · 8 seções · PT+EN · Cold start UX · PWA · Polar heatmap · Share URL · Live chart · 0 vulnerabilidades npm |
-| Testes | Ativo | 25 pytest (2 com skip condicional em DATA_MODE=mock) + 13 vitest |
-| Segurança | Ativo (2026-08-12) | Dependabot (pip+npm+actions) · CI falha em HIGH+ (`pip-audit`, `npm audit`) |
+| Backend API | **Produção, deployado 2026-08-12** | FastAPI 0.141.1 + Starlette 1.6.0 · 6 endpoints REST + WebSocket /ws/simular · /v1/docs · Fly.io scale-to-zero · verificado via `/health`+`/analisar` (403 sem key, correto) — versão 6, CVEs de 2026-08-11 já em produção |
+| Frontend | Produção | React 18.3.1 · 8 seções · PT+EN · Cold start UX · PWA · Polar heatmap · Share URL · Live chart · 0 vulnerabilidades npm — majors (React 19, recharts 3, etc.) têm PR aberto pelo Dependabot, não revisados ainda |
+| Testes | Ativo | 25 pytest (2 marcados `real_data`, rodam só contra dado real — ver [[project-state]]) + 13 vitest — confirmado rodando hoje |
+| Segurança | Ativo (2026-08-12) | Dependabot (pip+npm+actions) · CI falha em HIGH+ (`pip-audit`, `npm audit`) · **14 PRs abertos, 0 revisados** — mecanismo funcionando, triagem pendente |
 | CI/CD | Ativo | GitHub Actions + Docker + Vercel auto-deploy |
-| Publicação | Publicado | DOI 10.5281/zenodo.20014594 · `paper.tex`/`paper.pdf` sincronizados (14/14, P6, P7) |
+| Publicação | Publicado | Software DOI `10.5281/zenodo.20014594` + paper preprint DOI `10.5281/zenodo.21897740` (CC-BY 4.0, linkados) · `paper.tex`/`paper.pdf` sincronizados (14/14, P6, P7) · **journal-alvo ainda não escolhido, não submetido** |
