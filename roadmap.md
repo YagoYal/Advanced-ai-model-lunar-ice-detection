@@ -262,13 +262,23 @@ tudo abaixo já mergeado e pushado em `main`.
       em vulnerabilidade HIGH+, antes do build Docker.
 - [x] Limpeza: 3 worktrees + branches órfãs de sessões de agente abandonadas,
       removidas (zero commits únicos além de `main`).
-- [x] **Bug de CI corrigido**: testes com coordenadas fixas de PSR real
-      (Shackleton, equador) falhavam silenciosamente quando `docker-ci.yml` roda
-      com `DATA_MODE=mock` (grid sintético 64×64 menor que as coordenadas do
-      grid real 180×360) — provavelmente vermelho há semanas sem ninguém notar.
-      Corrigido com skip condicional baseado no tamanho real do grid carregado.
-- [ ] **Pendente do usuário**: `fly deploy` — os fixes de CVE já estão em `main`
-      mas a produção (Fly.io) só os recebe depois de um redeploy manual.
+- [x] **Bug de CI corrigido de verdade** (2ª tentativa — a 1ª era paliativa,
+      revisada a pedido explícito do usuário): testes com coordenadas fixas de
+      PSR real (Shackleton, equador) falhavam contra `docker-ci.yml` com
+      `DATA_MODE=mock`. Diagnóstico original (grid mock 64×64 menor que as
+      coordenadas) estava errado — `data/processed/lro/mock/` nem existe em CI
+      (não é tracked em git); sem ele, `backend/main.py` cai num fallback de
+      grid 180×360 de **ruído aleatório**, e as asserções científicas falham
+      de forma imprevisível contra esse ruído (Shackleton 0.00006, equador
+      0.90 — o oposto do esperado). Reproduzido o CI real via `git clone`
+      limpo + `docker build` antes de corrigir. Fix: `@pytest.mark.real_data`
+      nos 2 testes, excluídos do step mock (`-m "not real_data"`), rodados no
+      step que já gera dado real — contra o modelo de produção committed, não
+      um retreino CI-only enfraquecido. Verificado ponta a ponta simulando os
+      2 steps do CI exatamente.
+- [x] **`fly deploy` — deixado explicitamente com o usuário**, a pedido dele
+      (2026-08-12). Os fixes de CVE já estão em `main`; não fazer o deploy por
+      ele nem perguntar de novo, só se ele pedir.
 - [ ] Majors de frontend não atualizados nesta rodada (React 19, framer-motion 13,
       react-leaflet 5, recharts 3) — risco/esforço maior, avaliar separadamente.
 
