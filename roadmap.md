@@ -216,9 +216,20 @@
 
 ## Fase 9 — Da ferramenta para a ciência
 
+- [x] `paper.tex` sincronizado com resultados atuais (2026-08-11, branch `feat/p7-cross-validation`):
+      benchmark 12/14→14/14 (86%→100%) — número estava desatualizado, predatava o fix de haversine
+      (commit `6949773`); parágrafo de falhas reescrito explicando a causa real em vez de só apagar;
+      nova subseção "Interpretability and Calibration" com resultados reais de P6 (GradCAM, SHAP/gradiente,
+      ECE=0.0905 via MC Dropout) — incluindo um bug real encontrado e corrigido no processo
+      (`run_interpret.py` nunca buscava insolação/temperatura reais por coordenada, inflando falsos
+      positivos nos controles negativos); nova subseção "Out-of-Distribution Generalisation" com o
+      achado do P7 (falha de generalização em quadrante polar nunca visto). 3 referências bibliográficas
+      novas (Selvaraju 2017, Lundberg & Lee 2017, Gal & Ghahramani 2016).
+- [ ] **Recompilar `paper.pdf`** — sem compilador LaTeX local disponível nesta sessão; braces/citações
+      checados manualmente mas o PDF publicado ainda reflete a versão antiga. Necessário antes de submeter.
 - [ ] Script reprodutível: gerar todos os plots do `paper.tex` a partir dos `.npy` locais (figura única por comando)
 - [ ] Submissão do dataset para PDS (Planetary Data System NASA) — licença pública, citável independentemente do código
-- [ ] Submissão de artigo: Icarus / JGR Planets / MNRAS (manuscrito `paper.tex` já existe — requer P6 completo antes)
+- [ ] Submissão de artigo: Icarus / JGR Planets / MNRAS (manuscrito `paper.tex` atualizado — falta recompilar PDF e revisão final antes de enviar)
 
 ---
 
