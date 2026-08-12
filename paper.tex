@@ -69,9 +69,9 @@ subsurface thermal encoder. Labels are derived exclusively from independent
 instrument confirmations, avoiding the circularity common in PSR-based training sets.
 A Double Deep Q-Network (DQN) agent performs autonomous rover navigation, maximising
 ice probability while accounting for subsurface thermal state. On a benchmark of 14
-catalogued locations drawn from four published datasets, the model achieves 86\%
-accuracy (12/14), with all six negative controls correctly rejected and two lower-confidence
-PSRs (Nobile, Amundsen) missed (F1 = 0.997, Recall = 1.000, val\_loss = 0.0109
+catalogued locations drawn from four published datasets, the model achieves 100\%
+accuracy (14/14), with all six negative controls correctly rejected and all eight
+catalogued PSRs correctly detected (F1 = 0.997, Recall = 1.000, val\_loss = 0.0109
 on the validation set at 30 epochs). The platform
 exposes a FastAPI backend and an interactive React web interface for point-and-click
 ice probability analysis of the full 180$\times$360 lunar grid.
@@ -329,8 +329,8 @@ Location & Source & $\hat{p}$ & Expected & Result \\
 Cabeus      & \citet{colaprete2010} & 0.983 & ICE & \checkmark \\
 Shackleton  & \citet{gladstone2010} & 1.000 & ICE & \checkmark \\
 Haworth     & \citet{spudis2010}    & 1.000 & ICE & \checkmark \\
-Nobile      & \citet{hayne2015}     & 0.000 & ICE & $\times$   \\
-Amundsen    & \citet{mazarico2011}  & 0.000 & ICE & $\times$   \\
+Nobile      & \citet{hayne2015}     & 1.000 & ICE & \checkmark \\
+Amundsen    & \citet{mazarico2011}  & 1.000 & ICE & \checkmark \\
 \midrule
 \multicolumn{5}{l}{\textit{North pole — confirmed ice}} \\
 Hermite     & \citet{paige2010}     & 1.000 & ICE & \checkmark \\
@@ -345,7 +345,7 @@ Tycho       & —                     & 0.000 & NO ICE & \checkmark \\
 Mid-lat 40°N & —                    & 0.000 & NO ICE & \checkmark \\
 Mid-lat 40°S & —                    & 0.000 & NO ICE & \checkmark \\
 \midrule
-\textbf{Total} & & & & \textbf{12/14 (86\%)} \\
+\textbf{Total} & & & & \textbf{14/14 (100\%)} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -356,14 +356,61 @@ Validation against 6 PSRs with known Diviner EPF measurements confirms that
 predicted probabilities are consistent with published surface temperatures and
 cold-trap stability criteria ($T < 110$ K, \citealt{paige2010}).
 
-The two benchmark failures (Nobile, $\hat{p} = 0.000$; Amundsen, $\hat{p} = 0.000$)
-are both lower-confidence PSRs (conf~$\leq 0.75$) located at non-extreme south-polar
-longitudes ($\lambda = +53.5^\circ$ and $+84.7^\circ$). Neither site has direct
-LCROSS, EPF, or LAMP confirmation; both rely on Diviner cold-trap modelling
-\citep{hayne2015} and LOLA illumination \citep{mazarico2011} alone. Their absence
-from the Mini-RF CPR label set (the dominant positive source at $\geq 60^\circ$ S)
-means the model has insufficient positive signal to generalise to these mid-longitude
-polar targets — a direct consequence of the Mini-RF polar strip coverage pattern.
+An earlier iteration of the label pipeline benchmarked at 12/14 (86\%), failing on
+Nobile and Amundsen — both lower-confidence PSRs (conf~$\leq 0.75$) at non-extreme
+south-polar longitudes ($\lambda = +53.5^\circ$ and $+84.7^\circ$) without direct
+LCROSS, EPF, or LAMP confirmation, relying instead on Diviner cold-trap modelling
+\citep{hayne2015} and LOLA illumination \citep{mazarico2011} alone. The cause was
+traced to \texttt{generate\_labels.py} and \texttt{generate\_scientific\_data.py}
+using approximate Euclidean grid-index distance rather than true haversine
+great-circle distance when checking PSR proximity, which under-propagated positive
+label signal near these two non-extreme-longitude sites. After correcting both
+modules to use vectorised haversine distance throughout, label coverage near Nobile
+and Amundsen became accurate and the current model classifies all 14 catalogued
+locations correctly (Table~\ref{tab:benchmark}).
+
+\subsection{Interpretability and Calibration}
+
+To verify that predictions are grounded in physically meaningful signal rather
+than an opaque non-linear fit, we apply three complementary interpretability
+techniques (\texttt{model/interpret.py}): Grad-CAM \citep{selvaraju2017} on the
+last convolutional block of the \texttt{CNNEncoder}; gradient$\times$input
+attribution over the five \texttt{PhysicsEncoder} inputs, with a SHAP
+GradientExplainer \citep{lundberg2017} variant that isolates the physics
+branch by zeroing the image input; and a reliability diagram with Expected
+Calibration Error (ECE) from Monte Carlo Dropout \citep{gal2016} (30 stochastic
+forward passes).
+
+Early development of this pipeline surfaced a bug worth reporting: the script
+that drives per-coordinate Grad-CAM and attribution left \texttt{insolacao} and
+\texttt{temperatura} at their function defaults (0.0 and \texttt{None}) instead
+of querying the real grid values used everywhere else in the codebase, so every
+probed coordinate silently received a zero-insolation, zero-subsurface-temperature
+input — identical to a permanently shadowed region regardless of true location.
+This inflated ice probability at all four negative controls in the interpretability
+probe set ($\hat p \approx 0.96$) and collapsed attribution to $\approx$100\% on
+\texttt{lat} everywhere, since the other four features were identically zero and
+therefore trivially had zero gradient$\times$input. After fixing the script to
+query \texttt{insolacao.npy} and derive surface temperature per coordinate
+(mirroring \texttt{model/benchmark.py}), the interpretability probe set —
+12 locations, a distinct but overlapping set from the 14-location benchmark of
+Table~\ref{tab:benchmark} — scores 11/12, with only Sylvester (a PSR outside the
+main benchmark catalogue) misclassified. Attribution is now spread across all
+five features rather than collapsing onto \texttt{lat}: for positive (ice)
+locations, mean attribution is lat 28.2\%, sub\_0.1m 27.2\%, sub\_0.5m 22.8\%,
+sub\_1.0m 16.8\%, insolacao 5.1\%; for negative controls, sub\_1.0m 34.4\%,
+sub\_0.1m 32.7\%, sub\_0.5m 23.3\%, insolacao 7.2\%, lat 2.4\%. Subsurface
+thermal features dominate attribution for negatives, consistent with the model
+using warm subsurface temperature — not merely latitude — to reject non-PSR
+sites. Calibration on the validation set gives ECE~$=0.0905$, indicating mild
+overconfidence (ECE~$>0.05$) rather than the well-calibrated regime, which we
+report as an open item rather than round down to a more favourable figure.
+
+We include this bug and its fix in the manuscript deliberately: an
+interpretability pipeline is only trustworthy if its own inputs are verified,
+and a plausible-looking but wrong explanation (100\% latitude attribution) is a
+more dangerous failure mode than an obviously broken one, since it would have
+been easy to mistake for a genuine finding about model behaviour.
 
 % ---------------------------------------------------------------
 \section{System Architecture}
@@ -388,14 +435,17 @@ GitHub Actions CI; data and model volumes persist across container rebuilds.
 % ---------------------------------------------------------------
 \section{Discussion}
 
-The 86\% benchmark accuracy (12/14) reflects a genuine model limitation rather than
-a calibration artefact. All six negative controls and six of eight PSRs are correctly
-classified; the two failures (Nobile, Amundsen) are the lowest-confidence PSRs in
-the catalogue (conf~$\leq 0.75$) and lack direct instrument confirmation beyond
-Diviner cold-trap modelling. The value of the system lies not in the aggregate
-benchmark figure but in (1) the absence of circular label construction, (2) the
-explicit physics encoding of subsurface temperature, and (3) the provision of
-per-prediction uncertainty via MC Dropout.
+The 100\% benchmark accuracy (14/14) reflects a physics-informed label pipeline
+free of circular construction rather than an aggregate figure to be taken at face
+value: two of the fourteen sites (Nobile, Amundsen) are the lowest-confidence PSRs
+in the catalogue (conf~$\leq 0.75$) and lack direct instrument confirmation beyond
+Diviner cold-trap modelling, and only classify correctly after the haversine label
+fix described in Section~\ref{sec:results} — a reminder that a perfect score on
+this benchmark is sensitive to label-pipeline correctness, not solely to model
+capacity. The value of the system lies not in the aggregate benchmark figure alone
+but in (1) the absence of circular label construction, (2) the explicit physics
+encoding of subsurface temperature, and (3) the provision of per-prediction
+uncertainty via MC Dropout.
 
 The subsurface thermal bonus in the reward function of the DQN agent constitutes
 a physically motivated exploration prior. Regions cold at 0.5 m depth are
@@ -472,6 +522,11 @@ Detection of Water in the LCROSS Ejecta Plume.
 \textit{Science}, 330, 463--468.
 \url{https://doi.org/10.1126/science.1186986}
 
+\bibitem[Gal \& Ghahramani(2016)]{gal2016}
+Gal, Y., \& Ghahramani, Z. (2016).
+Dropout as a Bayesian Approximation: Representing Model Uncertainty in Deep Learning.
+\textit{Proceedings of the 33rd International Conference on Machine Learning (ICML)}, 48, 1050--1059.
+
 \bibitem[Gladstone et al.(2010)]{gladstone2010}
 Gladstone, G. R., et al. (2010).
 LAMP: The Lyman Alpha Mapping Project on the Lunar Reconnaissance Orbiter Mission.
@@ -484,6 +539,11 @@ Evidence for Exposed Water Ice in the Moon's South Polar Regions from Lunar
 Reconnaissance Orbiter Ultraviolet Albedo and Temperature Measurements.
 \textit{Journal of Geophysical Research: Planets}, 120, 1599--1615.
 \url{https://doi.org/10.1002/2014JE004797}
+
+\bibitem[Lundberg \& Lee(2017)]{lundberg2017}
+Lundberg, S. M., \& Lee, S.-I. (2017).
+A Unified Approach to Interpreting Model Predictions.
+\textit{Advances in Neural Information Processing Systems (NeurIPS)}, 30, 4765--4774.
 
 \bibitem[Mazarico et al.(2011)]{mazarico2011}
 Mazarico, E., et al. (2011).
@@ -502,6 +562,11 @@ Sato, H., et al. (2014).
 Resolved Hapke parameter maps of the Moon.
 \textit{Journal of Geophysical Research: Planets}, 119, 1775--1805.
 \url{https://doi.org/10.1002/2013JE004580}
+
+\bibitem[Selvaraju et al.(2017)]{selvaraju2017}
+Selvaraju, R. R., Cogswell, M., Das, A., Vedantam, R., Parikh, D., \& Batra, D. (2017).
+Grad-CAM: Visual Explanations from Deep Networks via Gradient-Based Localization.
+\textit{Proceedings of the IEEE International Conference on Computer Vision (ICCV)}, 618--626.
 
 \bibitem[Spudis et al.(2010)]{spudis2010}
 Spudis, P. D., et al. (2010).
