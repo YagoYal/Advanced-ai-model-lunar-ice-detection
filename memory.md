@@ -14,7 +14,7 @@ Labels sem circularidade (PSR geometry nunca usada como label direta).
 - Data: numpy, rasterio, astropy | grade 180×360 (lat=i−90, lon=j−180)
 - Backend: FastAPI+uvicorn+slowapi+pydantic | X-API-Key auth | CSP/HSTS
 - Frontend: React+Vite+Leaflet+recharts+framer-motion | 8 sections
-- Infra: Docker+GitHub Actions CI | pytest(15)+vitest(13)
+- Infra: Docker+GitHub Actions CI (com Dependabot + audit gates desde 2026-08-12) | pytest(25)+vitest(13)
 
 ## Arquitetura crítica
 ```

@@ -1,6 +1,6 @@
 # Lunar Ice Intelligence — Roadmap
 
-> **Versão:** 1.0.0 · **DOI:** [10.5281/zenodo.20014594](https://doi.org/10.5281/zenodo.20014594) · **Última revisão:** 2026-05-31
+> **Versão:** 1.0.0 · **DOI:** [10.5281/zenodo.20014594](https://doi.org/10.5281/zenodo.20014594) · **Última revisão:** 2026-08-12
 
 ---
 
@@ -233,9 +233,44 @@
       novas (Selvaraju 2017, Lundberg & Lee 2017, Gal & Ghahramani 2016).
 - [ ] **Recompilar `paper.pdf`** — sem compilador LaTeX local disponível nesta sessão; braces/citações
       checados manualmente mas o PDF publicado ainda reflete a versão antiga. Necessário antes de submeter.
+- [x] **`paper.pdf` recompilado** (2026-08-11) — via Docker `texlive/texlive:latest`
+      (sem LaTeX instalado localmente), 2 passes pdflatex, 12 páginas, sem erro/referência
+      quebrada. `paper.pdf` é gitignored (build artifact) — regenerar localmente antes de
+      qualquer submissão futura se `paper.tex` mudar de novo.
 - [ ] Script reprodutível: gerar todos os plots do `paper.tex` a partir dos `.npy` locais (figura única por comando)
 - [ ] Submissão do dataset para PDS (Planetary Data System NASA) — licença pública, citável independentemente do código
-- [ ] Submissão de artigo: Icarus / JGR Planets / MNRAS (manuscrito `paper.tex` atualizado — falta recompilar PDF e revisão final antes de enviar)
+- [ ] Submissão de artigo: Icarus / JGR Planets / MNRAS (manuscrito e PDF prontos — falta revisão humana final e escolha do journal-alvo)
+
+---
+
+## Fase 10 — Auditoria de segurança (2026-08-11/12)
+
+Projeto ficou sem commit em `main` por 70 dias (2026-06-02 → 2026-08-11). Auditoria
+completa rodada com evidência real (`npm audit`, `pip-audit`), não estimativa —
+tudo abaixo já mergeado e pushado em `main`.
+
+- [x] Frontend: 4 vulnerabilidades HIGH (`nanoid`, `postcss`, `undici`, `vite`) —
+      corrigidas via `npm audit fix`, 0 vulnerabilidades depois. Build + 13/13 testes confirmados.
+- [x] Backend: 12 CVEs conhecidas — a mais grave, `starlette==0.38.6` (9 CVEs,
+      dependência-núcleo do FastAPI que processa toda requisição HTTP), corrigida
+      via `fastapi` 0.115.0→0.141.1 (resolve starlette 1.6.0). `requests` 2.32.3→2.33.1,
+      `pytest` 8.3.3→9.0.3. 25/25 testes confirmados depois do upgrade.
+- [x] **Dependabot configurado** (`.github/dependabot.yml`) — pip (raiz), npm
+      (frontend/), github-actions — semanal. Antes: zero monitoramento automático.
+- [x] **CI ganhou gates de segurança** — 2 steps novos em `docker-ci.yml`
+      (`pip-audit --local`, `npm audit --audit-level=high`) que falham o build
+      em vulnerabilidade HIGH+, antes do build Docker.
+- [x] Limpeza: 3 worktrees + branches órfãs de sessões de agente abandonadas,
+      removidas (zero commits únicos além de `main`).
+- [x] **Bug de CI corrigido**: testes com coordenadas fixas de PSR real
+      (Shackleton, equador) falhavam silenciosamente quando `docker-ci.yml` roda
+      com `DATA_MODE=mock` (grid sintético 64×64 menor que as coordenadas do
+      grid real 180×360) — provavelmente vermelho há semanas sem ninguém notar.
+      Corrigido com skip condicional baseado no tamanho real do grid carregado.
+- [ ] **Pendente do usuário**: `fly deploy` — os fixes de CVE já estão em `main`
+      mas a produção (Fly.io) só os recebe depois de um redeploy manual.
+- [ ] Majors de frontend não atualizados nesta rodada (React 19, framer-motion 13,
+      react-leaflet 5, recharts 3) — risco/esforço maior, avaliar separadamente.
 
 ---
 
@@ -247,8 +282,9 @@
 | ONNX | Produção (Fly.io) | opset 17 · dynamic batch · inferência determinística |
 | Validação PSR | Produção | **14/14 (100%)** |
 | DQN Rover | Produção | 500 ep · PER SumTree · Double DQN · reward~165.38 · ice_max=1.000 |
-| Backend API | Produção | 6 endpoints REST + WebSocket /ws/simular · /v1/docs · Fly.io scale-to-zero |
-| Frontend | Produção | 8 seções · PT+EN · Cold start UX · PWA · Polar heatmap · Share URL · Live chart |
-| Testes | Ativo | 25 pytest + 14 vitest |
+| Backend API | Produção* | FastAPI 0.141.1 + Starlette 1.6.0 · 6 endpoints REST + WebSocket /ws/simular · /v1/docs · Fly.io scale-to-zero — *`fly deploy` pendente pra pegar fix de CVE (2026-08-12) |
+| Frontend | Produção | React 18.3.1 · 8 seções · PT+EN · Cold start UX · PWA · Polar heatmap · Share URL · Live chart · 0 vulnerabilidades npm |
+| Testes | Ativo | 25 pytest (2 com skip condicional em DATA_MODE=mock) + 13 vitest |
+| Segurança | Ativo (2026-08-12) | Dependabot (pip+npm+actions) · CI falha em HIGH+ (`pip-audit`, `npm audit`) |
 | CI/CD | Ativo | GitHub Actions + Docker + Vercel auto-deploy |
-| Publicação | Publicado | DOI 10.5281/zenodo.20014594 |
+| Publicação | Publicado | DOI 10.5281/zenodo.20014594 · `paper.tex`/`paper.pdf` sincronizados (14/14, P6, P7) |
