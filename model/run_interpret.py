@@ -13,15 +13,39 @@ import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+# Windows console (cp1252) não decodifica ✓/✗ — força utf-8 sem exigir
+# PYTHONIOENCODING externo.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 from pathlib import Path
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader, random_split
 
+from data.data_pipeline.coords import graus_para_grid
 from model.interpret import calibration_curve, gradcam_coordinate, physics_attribution, shap_attribution
+from model.physics import temperatura_superficie
 
 OUTPUT_DIR = Path("model/interpretability")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+# Mesma fonte que model/benchmark.py usa — sem isso, gradcam_coordinate()/
+# physics_attribution() caem nos defaults (insolacao=0, temperatura=None) e
+# o modelo vê toda coordenada como se fosse um PSR isotérmico, inflando
+# P(gelo) inclusive nos controles negativos (bug encontrado em 2026-08-11).
+_INSOL_PATH = "data/processed/lro/insolacao.npy"
+_INSOL_MAP = np.load(_INSOL_PATH) if os.path.exists(_INSOL_PATH) else None
+
+
+def _dados_fisicos_reais(lat: float, lon: float) -> tuple[float, float]:
+    """Retorna (insolacao, temperatura_superficie) reais da grade para (lat, lon)."""
+    if _INSOL_MAP is None:
+        return 500.0, temperatura_superficie(500.0)  # fallback documentado, igual benchmark.py
+    i, j = graus_para_grid(lat, lon)
+    insol = float(_INSOL_MAP[i, j])
+    return insol, temperatura_superficie(insol)
 
 # PSRs confirmados + negativos — benchmark 14/14
 LOCATIONS = [
@@ -54,19 +78,22 @@ def main() -> None:
     for loc in LOCATIONS:
         name = loc["name"]
         lat, lon = loc["lat"], loc["lon"]
+        insol, temp_sup = _dados_fisicos_reais(lat, lon)
 
         cam_result = gradcam_coordinate(
             lat=lat,
             lon=lon,
+            insolacao=insol,
+            temperatura=temp_sup,
             save_path=str(OUTPUT_DIR / f"gradcam_{name.lower()}.png"),
         )
 
         # SHAP com fallback para gradient attribution se shap não instalado
         try:
-            attr = shap_attribution(lat=lat)
+            attr = shap_attribution(lat=lat, insolacao=insol, temperatura=temp_sup)
             attr_method = "shap"
         except ImportError:
-            attr = physics_attribution(lat=lat)
+            attr = physics_attribution(lat=lat, insolacao=insol, temperatura=temp_sup)
             attr_method = "gradient"
 
         correct = (cam_result["prob"] >= 0.5) == bool(loc["expected"])
