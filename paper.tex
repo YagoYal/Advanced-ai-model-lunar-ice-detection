@@ -294,6 +294,7 @@ The agent uses Double Deep Q-Learning \citep{vanHasselt2016} with:
 
 % ---------------------------------------------------------------
 \section{Results}
+\label{sec:results}
 
 \subsection{Detection Performance}
 
@@ -405,6 +406,37 @@ A limitation of the current label set is the dominance of Mini-RF CPR positives
 (99.99\% of positives), whose confidence weight (0.8) is lower than direct
 EPF measurements. Future work should prioritise integrating additional Diviner EPF
 observations and LAMP count-rate maps to strengthen the high-confidence label pool.
+
+\subsection{Out-of-Distribution Generalisation}
+
+To probe robustness beyond the random 80/20 split used for the headline metrics,
+we ran a polar-quadrant cross-validation: the model was trained on all data
+excluding one polar quadrant ($|\text{lat}| > 60^\circ$, matching the polar-band
+convention already used for insolation zoning) and evaluated exclusively on the
+withheld quadrant, for both hemispheres independently (30 epochs each,
+\texttt{model/cross\_validate.py}).
+
+The result is a genuine negative finding. Training without any south-polar
+example and testing only on that quadrant (56.6\% positive) yields
+$F_1 = 0.000$ across all 30 epochs — the model detects no ice at all in a
+latitude range absent from training. The mirrored north-polar fold is unstable
+rather than reliably better: $F_1$ oscillates between $\approx 0.76$ and $0.000$
+across epochs rather than converging monotonically, and the best reported value
+($F_1 = 0.731$, recall $= 1.000$, precision $= 0.576$) corresponds to the
+epoch with lowest validation loss rather than a stable operating point.
+
+We attribute this to \texttt{lat\_norm} being one of the five \texttt{PhysicsEncoder}
+input features: rather than learning purely transferable subsurface-thermal and
+insolation physics, the model likely relies in part on latitude as a
+near-lookup signal, which cannot extrapolate to a latitude band never observed
+during training. This does \emph{not} invalidate the headline results in
+Section~\ref{sec:results} — production training uses a random split that
+includes examples from every latitude band, so the deployed model has not
+been shown to fail in this way — but it is a real limitation of the model's
+extrapolation capability that should be disclosed rather than omitted. We
+report it here as an open problem for future work (e.g. ablating
+\texttt{lat\_norm}, or regularising explicitly against latitude-based
+shortcut learning) rather than resolving it prior to this submission.
 
 % ---------------------------------------------------------------
 \section{Conclusion}
