@@ -5,6 +5,22 @@ from backend.main import app
 
 client = TestClient(app)
 
+# Coordenadas fixas de PSRs reais (Shackleton, equador) só fazem sentido contra a
+# grade real 180x360 — em DATA_MODE=mock a grade é sintética 64x64 sem nenhum
+# padrão real de PSR, então lon=180 fica fora dos limites (achado 2026-08-11: CI
+# roda com DATA_MODE=mock e esses 2 testes falhavam com 400, não por bug do
+# modelo, mas porque a grade carregada é pequena demais pras coordenadas fixas).
+_H, _W = client.get("/").json().get("dimensoes_mapa", [0, 0])
+_precisa_grade_real = pytest.mark.skipif(
+    _H < 91 or _W < 181,
+    reason=(
+        f"grade carregada ({_H}x{_W}) menor que as coordenadas fixas do teste "
+        "(precisa >=91x181) — normal em DATA_MODE=mock, que não modela PSRs reais; "
+        "testar Shackleton/equador contra dado sintético não teria sinal válido "
+        "mesmo se a grade coubesse"
+    ),
+)
+
 
 def test_health():
     response = client.get("/health")
@@ -143,6 +159,7 @@ def test_analisar_campos_completos():
     assert data["confianca"] in ("alta", "moderada", "baixa")
 
 
+@_precisa_grade_real
 def test_analisar_psr_sul_shackleton():
     # Shackleton -89.9° → lat_idx=0, lon_idx=180 — PSR confirmado (LAMP/Gladstone 2010)
     response = client.post("/analisar", json={"lat": 0, "lon": 180})
@@ -151,6 +168,7 @@ def test_analisar_psr_sul_shackleton():
     assert data["probabilidade_gelo"] >= 0.5, "PSR sul deve ter probabilidade >= 0.5"
 
 
+@_precisa_grade_real
 def test_analisar_equador_baixa_prob():
     # Equador iluminado — sem gelo esperado
     response = client.post("/analisar", json={"lat": 90, "lon": 180})
