@@ -198,9 +198,19 @@
 
 ### P7 — Robustez e generalização (médio prazo)
 
-- [ ] Cross-validation por quadrante polar: treinar sem polo sul → validar no polo sul (e vice-versa)
+- [x] Cross-validation por quadrante polar — `model/cross_validate.py` (2026-08-11), 30 épocas/fold,
+      limiar |lat|>60°. **Achado: o modelo NÃO generaliza para quadrante polar nunca visto no treino.**
+      `hold_sul` (treina sem lat≤−60°, valida nele): F1=0.000 em todas as 30 épocas — falha total.
+      `hold_norte` (espelhado): instável, oscila entre F1≈0.76 e F1=0.000 repetidamente; o F1=0.731
+      reportado veio de sorte de época (menor val_loss), não de convergência estável. Hipótese: `lat_norm`
+      é uma das 5 features de input — o modelo provavelmente aprende algo próximo de lookup por latitude
+      em vez de física transferível (insolação/temp. subsolo puros). **Não invalida produção** (treino
+      com split aleatório vê todas as latitudes) — é limitação de extrapolação OOD documentada, não bug.
+      Resultados completos: `model/cross_validation/results.json`. Decisão pendente: reportar como
+      limitação no artigo vs. investir em mitigação antes da submissão (ver Fase 9).
 - [ ] Teste de distribution shift: injetar erro sistemático de ±5K no Diviner e medir degradação de F1
-- [ ] Calibration curve (reliability diagram) para MC Dropout — verificar se σ² predito reflete incerteza real
+- [x] Calibration curve (reliability diagram) para MC Dropout — já implementado no P6 (`model/interpret.py`
+      `calibration_curve`, MC Dropout 30 passes + ECE) — item duplicado, referência cruzada apenas.
 
 ---
 
