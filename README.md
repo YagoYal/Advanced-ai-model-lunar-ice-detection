@@ -297,6 +297,20 @@ Os volumes `./data` e `./model` são montados no container — pesos (`pesos.pth
 }
 ```
 
+Artigo (preprint):
+
+```bibtex
+@misc{almeida_da_silva_2026_paper,
+  author    = {Almeida da Silva, Yago},
+  title     = {Lunar Ice Intelligence: AI-driven lunar water ice detection with physics-informed neural networks and autonomous rover navigation},
+  year      = {2026},
+  publisher = {Zenodo},
+  note      = {Preprint},
+  doi       = {10.5281/zenodo.21897740},
+  url       = {https://doi.org/10.5281/zenodo.21897740}
+}
+```
+
 ---
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
