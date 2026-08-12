@@ -172,7 +172,13 @@
 
 ### P3 — Backend e infraestrutura (baixa prioridade)
 
-- [ ] Testes de integração contra Fly.io produção (atualmente 25/25 só em mock local)
+- [x] Testes de integração contra Fly.io produção — `backend/test_integration_production.py`
+      (2026-08-11): HTTP real (não mock) contra `lunar-ice-api.fly.dev`. 7/7 endpoints
+      públicos passando (health, status, docs, openapi, security headers, CORS, WebSocket
+      `/ws/simular`). Endpoints autenticados (`/analisar`, `/predict`) cobertos no código mas
+      pulados por padrão — rodar com `RUN_PROD_INTEGRATION=1 PROD_API_KEY=<key>` (key de
+      produção não deve ir para o repo/chat). Desligado por padrão em CI (`RUN_PROD_INTEGRATION`
+      não setado) para não depender de rede nem acordar o scale-to-zero a cada push.
 - [ ] Cache Redis para `/analisar` — reduz latência após cold start para coordenadas populares
 - [ ] Exportação de relatório PDF por coordenada
 
