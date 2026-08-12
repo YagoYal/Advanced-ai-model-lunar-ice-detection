@@ -1,140 +1,144 @@
 # Changelog
 
-Registro de mudanças significativas do projeto, por data. Formato livre inspirado em
-[Keep a Changelog](https://keepachangelog.com/) — cada entrada tem evidência real
-(comando rodado, teste passando, commit), não estimativa.
+Record of significant project changes, by date. Loosely follows
+[Keep a Changelog](https://keepachangelog.com/) — every entry is backed by
+real evidence (a command run, a passing test, a commit), not an estimate.
 
 ---
 
-## 2026-08-12 — Deploy real, publicação acadêmica e triagem de dependências
+## 2026-08-12 — Real deploy, academic publication, and dependency triage
 
-Depois da auditoria de segurança do dia anterior ter corrigido o código em `main`
-sem nunca chegar à produção, esta sessão fechou esse hiato e organizou a presença
-acadêmica do projeto.
+After the previous day's security audit fixed the code on `main` without ever
+reaching production, this session closed that gap and organized the project's
+academic presence.
 
-### CI — correção real, não a paliativa do dia anterior
+### CI — real fix, not the previous day's palliative one
 
-- A 1ª tentativa de corrigir os testes de coordenada PSR fixa (Shackleton,
-  equador) contra `docker-ci.yml` (commit `bdcdb0c`) supunha um grid mock
-  64×64 menor causando erro 400 de bounds — diagnóstico baseado num arquivo
-  local não versionado, que **não existe** num checkout limpo de CI.
-- Reproduzido o CI de verdade (`git clone` limpo + `docker build`, exatamente
-  como `actions/checkout` faz): sem `data/processed/lro/mock/`,
-  `backend/main.py` cai num fallback de **grid 180×360 de ruído aleatório** —
-  response 200, mas prob=0.00006 (Shackleton)/0.90 (equador), o oposto do
-  esperado, porque a asserção científica não tem sinal contra ruído puro.
-- Fix real: marker `pytest.mark.real_data` nos 2 testes (registrado em
-  `pytest.ini`), excluídos do step rápido de mock (`-m "not real_data"`) e
-  rodados no step que já gera dado real — testam o modelo de produção
-  committed, não um retreino CI-only enfraquecido. Verificado ponta a ponta
-  simulando os 2 steps do CI exatamente. Commit `d8783b3`.
+- The first attempt to fix the fixed-PSR-coordinate tests (Shackleton,
+  equator) against `docker-ci.yml` (commit `bdcdb0c`) assumed a 64×64 mock
+  grid was causing a bounds error — a diagnosis based on an untracked local
+  file that **does not exist** on a clean CI checkout.
+- Reproduced the real CI environment (clean `git clone` + `docker build`,
+  exactly what `actions/checkout` does): without
+  `data/processed/lro/mock/`, `backend/main.py` falls back to a
+  **random-noise 180×360 grid** — a 200 response, but prob=0.00006
+  (Shackleton) / 0.90 (equator), the opposite of expected, because the
+  scientific assertion has no valid signal against pure noise.
+- Real fix: `pytest.mark.real_data` marker on the 2 tests (registered in
+  `pytest.ini`), excluded from the fast mock step (`-m "not real_data"`) and
+  run in the step that already generates real data — testing the committed
+  production model, not a weakened CI-only retrain. Verified end-to-end by
+  simulating both CI steps exactly. Commit `d8783b3`.
 
-### Produção
+### Production
 
-- **Primeiro deploy real desde 1º de junho** (`flyctl deploy`, versão 6) — trouxe
-  pra produção as correções de CVE, P3/P7 e o fix real de CI da sessão anterior,
-  que estavam prontos em `main` mas nunca deployados.
-- Verificado com requisições reais, não suposição: `GET /health` → `200`,
-  `GET /v1/openapi.json` → `200`, `POST /analisar` sem `X-API-Key` → `403`
-  (autenticação funcionando).
-- `frontend/.gitignore` adicionado (ignora `.vercel/` local).
+- **First real deploy since June 1st** (`flyctl deploy`, version 6) — shipped
+  the CVE fixes, P3/P7, and the real CI fix from the previous session, which
+  had been sitting ready in `main` but never deployed.
+- Verified with real requests, not assumption: `GET /health` → `200`,
+  `GET /v1/openapi.json` → `200`, `POST /analisar` without `X-API-Key` → `403`
+  (auth working correctly).
+- `frontend/.gitignore` added (ignores local `.vercel/`).
 
-### Publicação científica
+### Scientific publication
 
-- `paper.pdf` recompilado do zero via Docker (`texlive/texlive:latest`) e
-  comparado byte-a-byte com a versão anterior — confirma que o conteúdo já
-  estava correto, só o timestamp local enganava.
-- **Publicado como preprint separado no Zenodo**: DOI `10.5281/zenodo.21897740`
-  (CC-BY 4.0), linkado ao DOI do software (`10.5281/zenodo.20014594`) via
-  metadado "Is supplemented by"/"Is supplement to" nos dois registros.
-- Sincronizado no ORCID: 2 *works* públicos (software + paper), o paper com
-  identifier extra "Part of" apontando pro DOI do software.
-- `CITATION.cff`, `21897740.bib` e badges/BibTeX do `README.md` atualizados
-  com os dois DOIs.
+- `paper.pdf` recompiled from scratch via Docker (`texlive/texlive:latest`)
+  and byte-compared against the previous version — confirms the content was
+  already correct, only the local timestamp was misleading.
+- **Published as a separate preprint on Zenodo**: DOI
+  `10.5281/zenodo.21897740` (CC-BY 4.0), linked to the software DOI
+  (`10.5281/zenodo.20014594`) via "Is supplemented by"/"Is supplement to"
+  metadata on both records.
+- Synced on ORCID: 2 public *works* (software + paper), the paper with an
+  extra "Part of" identifier pointing to the software DOI.
+- `CITATION.cff`, `21897740.bib`, and the `README.md` badges/BibTeX updated
+  with both DOIs.
 
-### Auditoria Regra zero — achados reais no `roadmap.md`
+### Regra zero audit — real findings in `roadmap.md`
 
-- `roadmap.md` afirmava que o modelo em produção usa `FocalLoss(α=0.75, γ=2.0)`.
-  Falso — `model/train.py` usa BCE ponderada desde que a Focal Loss foi
-  removida por causar colapso degenerado de treino. Corrigido.
-- Linha morta contradizendo o item de recompilação do PDF logo abaixo dela.
-  Removida.
-- "`fly deploy` pendente" já estava obsoleto no momento em que foi lido —
-  corrigido pra refletir o deploy real feito nesta sessão.
+- `roadmap.md` claimed the production model uses `FocalLoss(α=0.75, γ=2.0)`.
+  False — `model/train.py` has used weighted BCE ever since Focal Loss was
+  removed for causing degenerate training collapse. Fixed.
+- A dead unchecked line contradicted the checked item right below it.
+  Removed.
+- "`fly deploy` pending" was already stale by the time it was read — fixed to
+  reflect the real deploy done this session.
 
-### Triagem de dependências (15 PRs do Dependabot acumulados, 0 revisados)
+### Dependency triage (15 accumulated Dependabot PRs, 0 reviewed)
 
-Cada um avaliado por risco real (uso no código, testes, runtime), não só
-"é dependência, mergeia":
+Each one assessed by actual risk (usage in code, tests, runtime), not just
+"it's a dependency, merge it":
 
-**Mergeados** (12, todos com teste antes/depois):
+**Merged** (12, each tested before/after):
 
 - 5× GitHub Actions (`cache`, `checkout`, `setup-node`, `setup-python`,
-  `docker/setup-buildx-action`) — só workflow de CI, sem impacto em app.
-- `requests` 2.33.1→2.34.2, `setuptools` ≥70→≥84.0.0 — patches diretos.
-- `@vitejs/plugin-react` 6.0.1→6.0.5 — patch, build+13 vitest confirmados.
-- `astropy` 6.1.3→8.0.1 — só usa `astropy.io.fits` num script de ingestão
-  manual (`parse_lamp.py`), não `coordinates`/`units` como a categorização
-  inicial (por risco) supunha.
-- `uvicorn` 0.32.0→0.52.1 — validado com servidor real rodando (não só
-  `TestClient`): HTTP real + sessão WebSocket real contra `/ws/simular`.
-- `Pillow` ≥11.0.0→≥12.3.0 — dependência transitiva, sem import direto no
-  código do projeto.
-- `recharts` 2.12.0→3.10.1 — sem conflito de peer dependency com React 18
-  (diferente do que se esperava); build e 13/13 vitest passando. **Sem**
-  verificação visual automatizada (headless Edge instável no sandbox Windows
-  desta sessão) — recomendado olhar as seções Dados/Rover manualmente.
+  `docker/setup-buildx-action`) — CI workflow only, no app impact.
+- `requests` 2.33.1→2.34.2, `setuptools` ≥70→≥84.0.0 — straight patches.
+- `@vitejs/plugin-react` 6.0.1→6.0.5 — patch, build + 13 vitest confirmed.
+- `astropy` 6.1.3→8.0.1 — only used for `astropy.io.fits` in a manual
+  ingestion script (`parse_lamp.py`), not `coordinates`/`units` as the
+  initial risk categorization assumed.
+- `uvicorn` 0.32.0→0.52.1 — validated with a real running server (not just
+  `TestClient`): real HTTP + a real WebSocket session against `/ws/simular`.
+- `Pillow` ≥11.0.0→≥12.3.0 — transitive dependency, no direct import
+  anywhere in the project code.
+- `recharts` 2.12.0→3.10.1 — no peer-dependency conflict with React 18
+  (different from what was expected); build and 13/13 vitest passing.
+  **Not** visually verified: headless Edge was unreliable in this Windows
+  sandbox and was abandoned after reasonable effort — a manual look at the
+  Dados/Rover chart sections is recommended after the next frontend deploy.
 
-**Bloqueados de propósito, com motivo verificado** (não "medo de major"):
+**Deliberately blocked, with a verified reason** (not "major = scary"):
 
-- `react` 18.3.1→19.2.8 — `npm install --dry-run` confirma `ERESOLVE`:
-  `react-leaflet@4.2.1` e `framer-motion@11` exigem `react ^18.0.0`. Precisa
-  upgrade coordenado (react-leaflet v5 + framer-motion v13 juntos), sessão
-  própria com teste visual do mapa/rover.
-- `jsdom` 29→30 e `@testing-library/jest-dom` 6→7 — `jsdom@30` exige Node
-  `≥22.22.2`; o CI (`docker-ci.yml`) roda Node 20. Bloqueado até decisão de
-  bumpar o Node do CI.
+- `react` 18.3.1→19.2.8 — `npm install --dry-run` confirms `ERESOLVE`:
+  `react-leaflet@4.2.1` and `framer-motion@11` require `react ^18.0.0`.
+  Needs a coordinated upgrade (react-leaflet v5 + framer-motion v13
+  together), its own session with visual testing of the map/rover.
+- `jsdom` 29→30 and `@testing-library/jest-dom` 6→7 — `jsdom@30` requires
+  Node `≥22.22.2`; CI (`docker-ci.yml`) runs Node 20. Blocked until a
+  decision is made to bump the CI's Node version.
 
 ---
 
-## 2026-08-11 — Auditoria de segurança completa (70 dias sem commit em `main`)
+## 2026-08-11 — Full security audit (70 days without a commit on `main`)
 
-Projeto ficou sem commit em `main` de 2026-06-02 a 2026-08-11. Auditoria rodada
-com evidência real (`npm audit`, `pip-audit`), não estimativa.
+The project went without a commit on `main` from 2026-06-02 to 2026-08-11.
+Audit run with real evidence (`npm audit`, `pip-audit`), not estimation.
 
-### Segurança
+### Security
 
-- Frontend: 4 vulnerabilidades HIGH (`nanoid`, `postcss`, `undici`, `vite`)
-  corrigidas via `npm audit fix` — 0 vulnerabilidades depois.
-- Backend: 12 CVEs conhecidas — a mais grave, `starlette==0.38.6` (9 CVEs),
-  corrigida via `fastapi` 0.115.0→0.141.1 (resolve `starlette` 1.6.0).
-  `requests` e `pytest` também atualizados.
-- **Zero automação de segurança antes desta sessão** — adicionado
-  `.github/dependabot.yml` (pip+npm+github-actions, semanal) e 2 steps novos
-  em `docker-ci.yml` (`pip-audit --local`, `npm audit --audit-level=high`)
-  que falham o build em vulnerabilidade HIGH+.
-- 3 worktrees + branches órfãs de sessões de agente abandonadas, removidas.
+- Frontend: 4 HIGH vulnerabilities (`nanoid`, `postcss`, `undici`, `vite`)
+  fixed via `npm audit fix` — 0 vulnerabilities afterward.
+- Backend: 12 known CVEs — the most severe, `starlette==0.38.6` (9 CVEs),
+  fixed via `fastapi` 0.115.0→0.141.1 (resolves `starlette` 1.6.0).
+  `requests` and `pytest` also updated.
+- **Zero security automation before this session** — added
+  `.github/dependabot.yml` (pip+npm+github-actions, weekly) and 2 new steps
+  in `docker-ci.yml` (`pip-audit --local`, `npm audit --audit-level=high`)
+  that fail the build on HIGH+ vulnerabilities.
+- 3 worktrees + orphaned branches from abandoned agent sessions, removed.
 
-### Ciência
+### Science
 
-- **P3** — `backend/test_integration_production.py`: testes HTTP/WebSocket
-  reais contra produção (não mock). 7/7 endpoints públicos passando.
-- **P7** — `model/cross_validate.py`: cross-validation por quadrante polar.
-  Achado real e documentado honestamente no paper: o modelo **não generaliza**
-  para quadrante polar nunca visto no treino (hold_sul F1=0.000 em 30/30
-  épocas). Não invalida produção (split aleatório vê todas as latitudes) —
-  é limitação de extrapolação documentada, não bug.
-- Bug real achado e corrigido em `model/run_interpret.py`: nunca buscava
-  insolação/temperatura reais por coordenada, inflando falsos positivos nos
-  controles negativos do relatório P6.
-- `paper.tex` sincronizado: benchmark 12/14→14/14 (estava desatualizado desde
-  antes do fix de haversine), novas seções de interpretabilidade (P6) e
-  limitação OOD (P7), 3 referências bibliográficas novas.
+- **P3** — `backend/test_integration_production.py`: real HTTP/WebSocket
+  tests against production (not mock). 7/7 public endpoints passing.
+- **P7** — `model/cross_validate.py`: cross-validation by polar quadrant.
+  Real finding, honestly documented in the paper: the model **does not
+  generalize** to a polar quadrant never seen in training (hold_sul F1=0.000
+  across 30/30 epochs). Doesn't invalidate production (random split sees all
+  latitudes) — it's a documented out-of-distribution extrapolation
+  limitation, not a bug.
+- Real bug found and fixed in `model/run_interpret.py`: it never fetched real
+  insolation/temperature per coordinate, inflating false positives in the
+  P6 report's negative controls.
+- `paper.tex` synced: benchmark 12/14→14/14 (was stale since before the
+  haversine fix), new interpretability (P6) and OOD limitation (P7) sections,
+  3 new bibliography entries.
 
-### CI — bug identificado, mas com diagnóstico inicial errado
+### CI — bug identified, but with an incorrect initial diagnosis
 
-Um bug real de CI foi identificado nesta data: testes de coordenada PSR fixa
-falhavam contra `docker-ci.yml`. O diagnóstico e fix desta data (grid mock
-64×64 causando erro de bounds) estava **errado** — baseado num arquivo local
-não versionado, que não existe em CI de verdade. Revisado e corrigido de
-verdade na sessão seguinte — ver entrada **2026-08-12** acima.
+A real CI bug was identified on this date: fixed-PSR-coordinate tests were
+failing against `docker-ci.yml`. This date's diagnosis and fix (a 64×64 mock
+grid causing a bounds error) was **wrong** — based on an untracked local
+file that doesn't exist on a real CI checkout. Reviewed and properly fixed
+in the following session — see the **2026-08-12** entry above.
