@@ -40,21 +40,23 @@ frontend/src/
 ```
 
 ## Resultados modelo
-- Dataset: 58.624 ex | 14.656 positivos (25%) | val_loss=0.0109 | F1=0.997 | Recall=1.000 | Acc=0.998
-- Benchmark 14 locais: 12/14 (86%) | PSRs: 6/8 | Negativos: 6/6
-- Falhas: Nobile(conf=0.75) e Amundsen(conf=0.70) — ausentes do Mini-RF CPR label set
+- Dataset: 58.624 ex | 14.656 positivos (25%) | val_loss=0.0294 | F1=0.991 | Recall=1.000
+- F1 tem discrepância não resolvida: README diz 0.991, paper.tex diz 0.997 —
+  usar README como referência até decidir fonte de verdade ou retreinar
+- Benchmark 14 locais: **14/14 (100%)**, reconfirmado 2026-08-11 rodando o script
 
-## API /analisar (8 campos)
-probabilidade_gelo, variancia, confianca, temperatura, temperatura_subsolo[3], insolacao, insolacao_atual, fase_lunar
+## API /analisar (9 campos)
+probabilidade_gelo, variancia, confianca, temperatura, temperatura_subsolo[3], insolacao, insolacao_atual, fase_lunar, altitude_m
 
 ## Deploy (produção)
-- Frontend: https://advanced-ai-model-lunar-ice-detecti.vercel.app (Vercel, root=frontend/)
-- Backend: https://advanced-ai-model-lunar-ice-detection-production.up.railway.app (Railway, porta 8080)
-- Railway usa Nixpacks (ignora Dockerfile) → Procfile + main.py raiz como workaround
-- Dockerfile: ENV PATH="/home/appuser/.local/bin:$PATH" após USER appuser; CMD shell form ${PORT:-8000}; -w 1
-- railway.json enums maiúsculos obrigatórios: DOCKERFILE, ON_FAILURE
-- HTTPSRedirectMiddleware REMOVIDO — Railway/Vercel terminam SSL; middleware convertia POST→GET via 301 → 404
-- startCommand no railway.json não expande $PORT → não usar; deixar CMD do Dockerfile/Procfile
+- Frontend: https://lunar-ice.vercel.app (Vercel, root=frontend/, auto-deploy via push em `main`)
+- Backend: https://lunar-ice-api.fly.dev (Fly.io, região gru, scale-to-zero)
+- **Railway foi cancelado** (expirou 2026-06-18, não renovado) — migrado pro
+  Fly.io antes disso. Todas as referências a Railway/Nixpacks/railway.json
+  abaixo são históricas, não se aplicam à infra atual.
+- `fly.toml`: health check `/health`, `auto_stop_machines`/`auto_start_machines`
+  pra scale-to-zero, `min_machines_running = 0`
+- Dockerfile: ENV PATH="/home/appuser/.local/bin:$PATH" após USER appuser
 - Vercel Root Directory = frontend (sem isso bundleia PyTorch 7GB como Lambda)
 - Vercel SPA routing: rewrites [{"source":"/(.*)","destination":"/index.html"}]
 - CORS allow_headers inclui X-API-Key
@@ -62,8 +64,9 @@ probabilidade_gelo, variancia, confianca, temperatura, temperatura_subsolo[3], i
 - Mock fallback: 180×360 (não 64×64)
 - pesos.pth (2.3MB) e rl_pesos.pth (209KB) commitados no repo
 - data/processed/lro/{temperatura,insolacao,temperatura_subsolo}.npy + imagens/ commitados
-- VITE_API_URL deve ser URL Railway completa sem trailing slash
-- deploy-config.txt na raiz (gitignored) — referência local de todas as configs
+- Reproduzir CI de verdade: `git clone` limpo (zero arquivos untracked) +
+  `docker build` — não confiar em `DATA_MODE=mock` local, pode mascarar
+  comportamento real de CI (ver `pytest.ini` / `docker-ci.yml`)
 
 ## Decisões permanentes
 - Licença: Apache 2.0 | NOTICE + CITATION.cff + paper.tex (preprint 10 págs, arXiv-ready)
@@ -80,9 +83,13 @@ probabilidade_gelo, variancia, confianca, temperatura, temperatura_subsolo[3], i
 - MapContainer NÃO pode ser filho de motion.div | ClickHandler DEVE ser filho de MapContainer
 
 ## Presença acadêmica
-- GitHub: YagoYal/Advanced-ai-model-lunar-ice-detection
-- Zenodo: DOI 10.5281/zenodo.20014594 | v1.0.0 | maio 2026
-- ORCID: work adicionado (Public)
+- GitHub: YagoYal/Advanced-ai-model-lunar-ice-detection (Releases: v1.1.0, v1.2.0)
+- Zenodo (software): DOI 10.5281/zenodo.20014594 | v1.0.0 | maio 2026 —
+  linkado via GitHub webhook (nova versão = novo Release, não tag simples)
+- Zenodo (paper/preprint): DOI 10.5281/zenodo.21897740 | CC-BY 4.0 | 2026-08-12 —
+  depósito separado, linkado ao software via "Is supplemented by"
+- ORCID: 2 works públicos (software + paper), linkados via identifier "Part of"
+- CHANGELOG.md na raiz (em inglês) — histórico datado com evidência por item
 - LinkedIn: post publicado 05/05/2026
 
 ## Referências científicas

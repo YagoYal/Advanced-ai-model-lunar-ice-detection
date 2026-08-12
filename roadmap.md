@@ -284,11 +284,40 @@ tudo abaixo já mergeado e pushado em `main`.
       step que já gera dado real — contra o modelo de produção committed, não
       um retreino CI-only enfraquecido. Verificado ponta a ponta simulando os
       2 steps do CI exatamente.
-- [x] **`fly deploy` — deixado explicitamente com o usuário**, a pedido dele
-      (2026-08-12). Os fixes de CVE já estão em `main`; não fazer o deploy por
-      ele nem perguntar de novo, só se ele pedir.
-- [ ] Majors de frontend não atualizados nesta rodada (React 19, framer-motion 13,
-      react-leaflet 5, recharts 3) — risco/esforço maior, avaliar separadamente.
+- [x] **`fly deploy` feito** (2026-08-12, mesma sessão) — versão 6 em produção,
+      verificado via `/health` (200), `/v1/openapi.json` (200), `/analisar`
+      sem key (403 correto). Ver Fase 11.
+- [x] Majors de frontend: `recharts` 2→3 mergeado (sem conflito de peer dep,
+      diferente do esperado — ver Fase 11). `react` 19, `react-leaflet` 5,
+      `framer-motion` 13 continuam bloqueados — motivo real, não risco vago:
+      `react-leaflet@4.2.1`/`framer-motion@11` exigem `react ^18.0.0`, upgrade
+      precisa ser coordenado nos 3 juntos.
+
+---
+
+## Fase 11 — Deploy real, publicação e triagem de dependências (2026-08-12)
+
+Continuação da Fase 10 na mesma data: o código da auditoria estava correto em
+`main` mas nunca tinha chegado à produção, e o Dependabot da Fase 10 já tinha
+acumulado 15 PRs sem ninguém revisar. Detalhes completos e evidência de cada
+item em [`CHANGELOG.md`](./CHANGELOG.md).
+
+- [x] Primeiro `fly deploy` real desde 1º de junho — produção sincronizada com `main`.
+- [x] Paper publicado como preprint separado no Zenodo (DOI `10.5281/zenodo.21897740`),
+      linkado ao software e sincronizado no ORCID (2 works públicos).
+- [x] 3 inconsistências factuais reais corrigidas neste `roadmap.md` (Focal Loss
+      fantasma, linha morta, "fly deploy pendente" obsoleto) — achado ao aplicar
+      Regra zero sobre o próprio documento, não sobre o código.
+- [x] 15 PRs do Dependabot triados por risco real (uso no código, não só
+      "major = perigoso"): 12 mergeados com teste antes/depois (GitHub Actions,
+      `requests`, `setuptools`, `@vitejs/plugin-react`, `astropy`, `uvicorn`,
+      `Pillow`, `recharts`), 3 bloqueados com motivo verificado por comando
+      (`react` 19 quebra peer deps reais; `jsdom`/`jest-dom` exigem Node que o
+      CI não tem).
+- [x] `CHANGELOG.md` criado — duas entradas datadas (2026-08-11, 2026-08-12),
+      cada claim com commit/comando associado.
+- [x] `v1.1.0` e `v1.2.0` — tags anotadas + GitHub Releases publicados via `gh`
+      CLI, cobrindo as duas sessões.
 
 ---
 
