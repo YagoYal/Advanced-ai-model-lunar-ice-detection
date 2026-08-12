@@ -1,0 +1,200 @@
+{
+  "locations": [
+    {
+      "name": "Cabeus",
+      "lat": -85.5,
+      "lon": -44.6,
+      "expected": 1,
+      "prob": 0.9408,
+      "correct": true,
+      "attribution_method": "gradient",
+      "physics_attribution": {
+        "insolacao": 0.0054,
+        "lat": 0.3841,
+        "sub_0.1m": 0.2642,
+        "sub_0.5m": 0.0996,
+        "sub_1.0m": 0.2467
+      }
+    },
+    {
+      "name": "Shackleton",
+      "lat": -89.9,
+      "lon": 0.0,
+      "expected": 1,
+      "prob": 0.9558,
+      "correct": true,
+      "attribution_method": "gradient",
+      "physics_attribution": {
+        "insolacao": 0.002,
+        "lat": 0.3556,
+        "sub_0.1m": 0.3008,
+        "sub_0.5m": 0.2647,
+        "sub_1.0m": 0.0768
+      }
+    },
+    {
+      "name": "Haworth",
+      "lat": -87.5,
+      "lon": -5.0,
+      "expected": 1,
+      "prob": 0.9542,
+      "correct": true,
+      "attribution_method": "gradient",
+      "physics_attribution": {
+        "insolacao": 0.0013,
+        "lat": 0.5998,
+        "sub_0.1m": 0.0844,
+        "sub_0.5m": 0.2785,
+        "sub_1.0m": 0.036
+      }
+    },
+    {
+      "name": "Nobile",
+      "lat": -85.2,
+      "lon": 53.5,
+      "expected": 1,
+      "prob": 0.8783,
+      "correct": true,
+      "attribution_method": "gradient",
+      "physics_attribution": {
+        "insolacao": 0.049,
+        "lat": 0.096,
+        "sub_0.1m": 0.1896,
+        "sub_0.5m": 0.1592,
+        "sub_1.0m": 0.5062
+      }
+    },
+    {
+      "name": "Sylvester",
+      "lat": -79.4,
+      "lon": -79.6,
+      "expected": 1,
+      "prob": 0.0554,
+      "correct": false,
+      "attribution_method": "gradient",
+      "physics_attribution": {
+        "insolacao": 0.1632,
+        "lat": 0.0081,
+        "sub_0.1m": 0.1779,
+        "sub_0.5m": 0.3784,
+        "sub_1.0m": 0.2725
+      }
+    },
+    {
+      "name": "Hermite",
+      "lat": 86.0,
+      "lon": -90.0,
+      "expected": 1,
+      "prob": 0.9685,
+      "correct": true,
+      "attribution_method": "gradient",
+      "physics_attribution": {
+        "insolacao": 0.0,
+        "lat": 0.6728,
+        "sub_0.1m": 0.1318,
+        "sub_0.5m": 0.142,
+        "sub_1.0m": 0.0534
+      }
+    },
+    {
+      "name": "Peary",
+      "lat": 88.6,
+      "lon": 33.0,
+      "expected": 1,
+      "prob": 0.6951,
+      "correct": true,
+      "attribution_method": "gradient",
+      "physics_attribution": {
+        "insolacao": 0.0967,
+        "lat": 0.0405,
+        "sub_0.1m": 0.5274,
+        "sub_0.5m": 0.282,
+        "sub_1.0m": 0.0534
+      }
+    },
+    {
+      "name": "Whipple",
+      "lat": 89.0,
+      "lon": -90.0,
+      "expected": 1,
+      "prob": 0.6936,
+      "correct": true,
+      "attribution_method": "gradient",
+      "physics_attribution": {
+        "insolacao": 0.086,
+        "lat": 0.0966,
+        "sub_0.1m": 0.5013,
+        "sub_0.5m": 0.2161,
+        "sub_1.0m": 0.1
+      }
+    },
+    {
+      "name": "Equador",
+      "lat": 0.0,
+      "lon": 0.0,
+      "expected": 0,
+      "prob": 0.0,
+      "correct": true,
+      "attribution_method": "gradient",
+      "physics_attribution": {
+        "insolacao": 0.096,
+        "lat": 0.0,
+        "sub_0.1m": 0.3959,
+        "sub_0.5m": 0.1714,
+        "sub_1.0m": 0.3367
+      }
+    },
+    {
+      "name": "MareTranq",
+      "lat": 0.7,
+      "lon": 23.5,
+      "expected": 0,
+      "prob": 0.0,
+      "correct": true,
+      "attribution_method": "gradient",
+      "physics_attribution": {
+        "insolacao": 0.0853,
+        "lat": 0.0002,
+        "sub_0.1m": 0.3975,
+        "sub_0.5m": 0.1732,
+        "sub_1.0m": 0.3438
+      }
+    },
+    {
+      "name": "Tycho",
+      "lat": -43.3,
+      "lon": -11.2,
+      "expected": 0,
+      "prob": 0.0,
+      "correct": true,
+      "attribution_method": "gradient",
+      "physics_attribution": {
+        "insolacao": 0.0069,
+        "lat": 0.0898,
+        "sub_0.1m": 0.1703,
+        "sub_0.5m": 0.3992,
+        "sub_1.0m": 0.3339
+      }
+    },
+    {
+      "name": "Copernicus",
+      "lat": 9.6,
+      "lon": -20.1,
+      "expected": 0,
+      "prob": 0.0,
+      "correct": true,
+      "attribution_method": "gradient",
+      "physics_attribution": {
+        "insolacao": 0.1014,
+        "lat": 0.0071,
+        "sub_0.1m": 0.343,
+        "sub_0.5m": 0.187,
+        "sub_1.0m": 0.3616
+      }
+    }
+  ],
+  "calibration": {
+    "ece": 0.0905,
+    "n_samples": 3779
+  }
+}

@@ -204,17 +204,38 @@
 
 ### P7 — Robustez e generalização (médio prazo)
 
-- [ ] Cross-validation por quadrante polar: treinar sem polo sul → validar no polo sul (e vice-versa)
+- [x] Cross-validation por quadrante polar — `model/cross_validate.py` (2026-08-11), 30 épocas/fold,
+      limiar |lat|>60°. **Achado: o modelo NÃO generaliza para quadrante polar nunca visto no treino.**
+      `hold_sul` (treina sem lat≤−60°, valida nele): F1=0.000 em todas as 30 épocas — falha total.
+      `hold_norte` (espelhado): instável, oscila entre F1≈0.76 e F1=0.000 repetidamente; o F1=0.731
+      reportado veio de sorte de época (menor val_loss), não de convergência estável. Hipótese: `lat_norm`
+      é uma das 5 features de input — o modelo provavelmente aprende algo próximo de lookup por latitude
+      em vez de física transferível (insolação/temp. subsolo puros). **Não invalida produção** (treino
+      com split aleatório vê todas as latitudes) — é limitação de extrapolação OOD documentada, não bug.
+      Resultados completos: `model/cross_validation/results.json`. Decisão pendente: reportar como
+      limitação no artigo vs. investir em mitigação antes da submissão (ver Fase 9).
 - [ ] Teste de distribution shift: injetar erro sistemático de ±5K no Diviner e medir degradação de F1
-- [ ] Calibration curve (reliability diagram) para MC Dropout — verificar se σ² predito reflete incerteza real
+- [x] Calibration curve (reliability diagram) para MC Dropout — já implementado no P6 (`model/interpret.py`
+      `calibration_curve`, MC Dropout 30 passes + ECE) — item duplicado, referência cruzada apenas.
 
 ---
 
 ## Fase 9 — Da ferramenta para a ciência
 
+- [x] `paper.tex` sincronizado com resultados atuais (2026-08-11, branch `feat/p7-cross-validation`):
+      benchmark 12/14→14/14 (86%→100%) — número estava desatualizado, predatava o fix de haversine
+      (commit `6949773`); parágrafo de falhas reescrito explicando a causa real em vez de só apagar;
+      nova subseção "Interpretability and Calibration" com resultados reais de P6 (GradCAM, SHAP/gradiente,
+      ECE=0.0905 via MC Dropout) — incluindo um bug real encontrado e corrigido no processo
+      (`run_interpret.py` nunca buscava insolação/temperatura reais por coordenada, inflando falsos
+      positivos nos controles negativos); nova subseção "Out-of-Distribution Generalisation" com o
+      achado do P7 (falha de generalização em quadrante polar nunca visto). 3 referências bibliográficas
+      novas (Selvaraju 2017, Lundberg & Lee 2017, Gal & Ghahramani 2016).
+- [ ] **Recompilar `paper.pdf`** — sem compilador LaTeX local disponível nesta sessão; braces/citações
+      checados manualmente mas o PDF publicado ainda reflete a versão antiga. Necessário antes de submeter.
 - [ ] Script reprodutível: gerar todos os plots do `paper.tex` a partir dos `.npy` locais (figura única por comando)
 - [ ] Submissão do dataset para PDS (Planetary Data System NASA) — licença pública, citável independentemente do código
-- [ ] Submissão de artigo: Icarus / JGR Planets / MNRAS (manuscrito `paper.tex` já existe — requer P6 completo antes)
+- [ ] Submissão de artigo: Icarus / JGR Planets / MNRAS (manuscrito `paper.tex` atualizado — falta recompilar PDF e revisão final antes de enviar)
 
 ---
 
