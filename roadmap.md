@@ -288,10 +288,10 @@ tudo abaixo já mergeado e pushado em `main`.
       verificado via `/health` (200), `/v1/openapi.json` (200), `/analisar`
       sem key (403 correto). Ver Fase 11.
 - [x] Majors de frontend: `recharts` 2→3 mergeado (sem conflito de peer dep,
-      diferente do esperado — ver Fase 11). `react` 19, `react-leaflet` 5,
-      `framer-motion` 13 continuam bloqueados — motivo real, não risco vago:
-      `react-leaflet@4.2.1`/`framer-motion@11` exigem `react ^18.0.0`, upgrade
-      precisa ser coordenado nos 3 juntos.
+      diferente do esperado). `react` 19 + `react-leaflet` 5 + `framer-motion`
+      13 — upgrade coordenado feito e verificado (2026-08-13, ver Fase 12).
+- [x] `jsdom` 30 + `@testing-library/jest-dom` 7 mergeados (2026-08-13) — Node
+      do CI bumpado 20→22, desbloqueando os dois (ver Fase 12).
 
 ---
 
@@ -318,6 +318,38 @@ item em [`CHANGELOG.md`](./CHANGELOG.md).
       cada claim com commit/comando associado.
 - [x] `v1.1.0` e `v1.2.0` — tags anotadas + GitHub Releases publicados via `gh`
       CLI, cobrindo as duas sessões.
+
+---
+
+## Fase 12 — Upgrade coordenado React 19 (2026-08-13)
+
+Os 3 itens que ficaram bloqueados na Fase 11 (motivo real, não risco vago)
+foram desbloqueados nesta sessão:
+
+- [x] **`jsdom` 30 + `@testing-library/jest-dom` 7 mergeados** — `jsdom@30`
+      exigia Node ≥22.22.2, CI rodava Node 20. Bumpado `node-version` de
+      `"20"` para `"22"` em `docker-ci.yml` (mudança isolada, sem outra
+      referência a versão de Node no `Dockerfile`/config do Vercel).
+      Verificado: 13/13 vitest local + confirmado no CI real (`#73`, sucesso).
+- [x] **React 18→19 + `react-leaflet` 4→5 + `framer-motion` 11→13, upgrade
+      coordenado**. Confirmação adicional do motivo do bloqueio: a PR do
+      Dependabot pro React 19 sozinho (`#13`) rodou no CI real e falhou de
+      verdade no step de `npm audit` com `ERESOLVE` — exatamente o conflito
+      de peer dependency previsto. `react-leaflet@5.0.0` passou a exigir
+      `react ^19.0.0` **exclusivamente** (não aceita mais 18) — upgrade sem
+      volta fácil.
+      Verificação além de build/teste unitário, já que mexe na parte mais
+      frágil do app (regra crítica documentada: `MapContainer`/`motion.div`):
+      Chrome headless real via `puppeteer-core` contra o dev server + backend
+      real rodando —
+        - `recharts` (BarChart/LineChart) renderiza certo nas seções Dados e Rover
+        - Mapa Leaflet renderiza com tiles NASA Trek, controles de zoom funcionam
+        - Clique no mapa cria marcador (confirmado no DOM: ícone carregado,
+          25×41px, visível)
+        - Botão "Simulate Rover" dispara sessão WebSocket real contra
+          `/ws/simular` e gera elemento de trajetória no DOM
+        - Zero erros de console/página durante toda a interação
+      `npm audit`: 0 vulnerabilidades. Commit `90e4443`.
 
 ---
 
