@@ -13,5 +13,5 @@ requests==2.34.2
 pytest==9.0.3
 httpx==0.27.2
 astropy==8.0.1
-matplotlib>=3.9.0
+matplotlib>=3.11.1
 shap>=0.45.0
