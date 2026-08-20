@@ -71,8 +71,13 @@ A Double Deep Q-Network (DQN) agent performs autonomous rover navigation, maximi
 ice probability while accounting for subsurface thermal state. On a benchmark of 14
 catalogued locations drawn from four published datasets, the model achieves 100\%
 accuracy (14/14), with all six negative controls correctly rejected and all eight
-catalogued PSRs correctly detected (F1 = 0.997, Recall = 1.000, val\_loss = 0.0109
-on the validation set at 30 epochs). The platform
+catalogued PSRs correctly detected. On the random 80/20 validation split
+(F1 = 0.792, Recall = 0.973, val\_loss = 0.337 at 30 epochs), performance is
+lower than an earlier variant that included raw latitude as an input feature
+(F1 = 0.997) — deliberately: that variant used latitude as a lookup shortcut
+and failed completely on a polar quadrant withheld from training
+(Section~\ref{sec:ood}), whereas the reported model generalises to that
+regime. The platform
 exposes a FastAPI backend and an interactive React web interface for point-and-click
 ice probability analysis of the full 180$\times$360 lunar grid.
 \end{abstract}
@@ -222,6 +227,7 @@ p_ice      = self.fusion_head(fused)        # (B, 1)
 \end{lstlisting}
 
 \subsection{Subsurface Thermal Model}
+\label{sec:thermal-model}
 
 Subsurface temperature profiles follow the analytical solution to the one-dimensional
 thermal diffusion equation for a periodically forced surface \citep{vasavada2012}:
@@ -245,7 +251,9 @@ Profiles are computed at 20 depth layers spanning 0–2 m and stored as
 \subsection{Training}
 
 \begin{itemize}
-  \item \textbf{Dataset:} 58{,}624 examples; 14{,}656 positives (25\%)
+  \item \textbf{Dataset:} 18{,}896 examples; 4{,}724 positives (25\%) — sampled
+    from a base grid of 14{,}656 PSR-confirmed positive pixels (Table~\ref{tab:labels})
+    via the oversampling scheme in \texttt{LunarDataset}
   \item \textbf{Loss:} Weighted binary cross-entropy (handles class imbalance)
   \item \textbf{Optimiser:} Adam, lr = $10^{-3}$
   \item \textbf{Schedule:} CosineAnnealingLR
@@ -300,16 +308,18 @@ The agent uses Double Deep Q-Learning \citep{vanHasselt2016} with:
 
 \begin{table}[H]
 \centering
-\caption{CNN training and validation metrics (30 epochs, CPU).}
+\caption{CNN training and validation metrics (30 epochs, GPU), after the
+  \texttt{lat\_norm} ablation described in Section~\ref{sec:ood} —
+  precision 0.668.}
 \label{tab:results}
 \begin{tabular}{lr}
 \toprule
 Metric & Value \\
 \midrule
-val\_loss & 0.0109 \\
-F1 score  & 0.997  \\
-Recall    & 1.000  \\
-Accuracy  & 0.998  \\
+val\_loss & 0.337 \\
+F1 score  & 0.792  \\
+Recall    & 0.973  \\
+Accuracy  & 0.874  \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -326,16 +336,16 @@ Accuracy  & 0.998  \\
 Location & Source & $\hat{p}$ & Expected & Result \\
 \midrule
 \multicolumn{5}{l}{\textit{South pole — confirmed ice}} \\
-Cabeus      & \citet{colaprete2010} & 0.983 & ICE & \checkmark \\
-Shackleton  & \citet{gladstone2010} & 1.000 & ICE & \checkmark \\
-Haworth     & \citet{spudis2010}    & 1.000 & ICE & \checkmark \\
-Nobile      & \citet{hayne2015}     & 1.000 & ICE & \checkmark \\
-Amundsen    & \citet{mazarico2011}  & 1.000 & ICE & \checkmark \\
+Cabeus      & \citet{colaprete2010} & 0.817 & ICE & \checkmark \\
+Shackleton  & \citet{gladstone2010} & 0.906 & ICE & \checkmark \\
+Haworth     & \citet{spudis2010}    & 0.874 & ICE & \checkmark \\
+Nobile      & \citet{hayne2015}     & 0.793 & ICE & \checkmark \\
+Amundsen    & \citet{mazarico2011}  & 0.782 & ICE & \checkmark \\
 \midrule
 \multicolumn{5}{l}{\textit{North pole — confirmed ice}} \\
-Hermite     & \citet{paige2010}     & 1.000 & ICE & \checkmark \\
-Peary       & \citet{spudis2010}    & 1.000 & ICE & \checkmark \\
-Whipple     & \citet{mazarico2011}  & 1.000 & ICE & \checkmark \\
+Hermite     & \citet{paige2010}     & 0.982 & ICE & \checkmark \\
+Peary       & \citet{spudis2010}    & 0.855 & ICE & \checkmark \\
+Whipple     & \citet{mazarico2011}  & 0.982 & ICE & \checkmark \\
 \midrule
 \multicolumn{5}{l}{\textit{Negative controls — no ice}} \\
 Equator 0°N & —                     & 0.000 & NO ICE & \checkmark \\
@@ -394,15 +404,40 @@ therefore trivially had zero gradient$\times$input. After fixing the script to
 query \texttt{insolacao.npy} and derive surface temperature per coordinate
 (mirroring \texttt{model/benchmark.py}), the interpretability probe set —
 12 locations, a distinct but overlapping set from the 14-location benchmark of
-Table~\ref{tab:benchmark} — scores 11/12, with only Sylvester (a PSR outside the
-main benchmark catalogue) misclassified. Attribution is now spread across all
-five features rather than collapsing onto \texttt{lat}: for positive (ice)
-locations, mean attribution is lat 28.2\%, sub\_0.1m 27.2\%, sub\_0.5m 22.8\%,
-sub\_1.0m 16.8\%, insolacao 5.1\%; for negative controls, sub\_1.0m 34.4\%,
-sub\_0.1m 32.7\%, sub\_0.5m 23.3\%, insolacao 7.2\%, lat 2.4\%. Subsurface
-thermal features dominate attribution for negatives, consistent with the model
-using warm subsurface temperature — not merely latitude — to reject non-PSR
-sites. Calibration on the validation set gives ECE~$=0.0905$, indicating mild
+Table~\ref{tab:benchmark} — scored 11/12, with only Sylvester (a PSR outside the
+main benchmark catalogue) misclassified, and attribution was spread across all
+five features with \texttt{lat} the single largest contributor (28.2\% for
+positives, 31.6\% for negatives) — itself later understood as an artefact,
+discussed next.
+
+Figures below reflect the model after the \texttt{lat\_norm} mitigation
+(Section~\ref{sec:ood}): the interpretability probe set still scores 11/12,
+with Sylvester the sole miss, unchanged from before the mitigation — the
+precision trade-off visible in the aggregate metrics (Section~\ref{sec:results})
+does not manifest as a new miss on this particular 12-site probe set. The SHAP
+GradientExplainer's background distribution required a matching fix: it
+originally sampled all five dimensions as $\mathrm{Uniform}(0, 0.5)$, including
+\texttt{lat\_norm}. Since \texttt{lat\_norm} is now a constant zero at every
+training step, its \texttt{PhysicsEncoder} input weight never receives a
+gradient ($\partial \mathcal{L}/\partial w = \partial \mathcal{L}/\partial h
+\cdot x$, $x=0$ always) and remains at its random initial value — a background
+that varies this dimension probes an untrained weight and reports spurious
+attribution for a feature the model cannot see at inference. Before this fix,
+\texttt{lat} still showed up as a top contributor (21.7\% positives, 24.8\%
+negatives) despite contributing nothing to the actual forward pass — a second,
+independent artefact from the same root cause as the OOD failure, but in the
+explanation layer rather than the model itself. Zeroing \texttt{lat\_norm} in
+the SHAP background to match the true training distribution eliminates it:
+\texttt{lat} attribution drops to exactly 0.0\% for both groups, and
+\texttt{insolacao} is confirmed as the dominant signal (39.3\% positives,
+33.5\% negatives), followed by the subsurface temperature features
+(17.2--21.9\% positives, 16.1--33.2\% negatives). Subsurface thermal and
+insolation features now account for all attribution, consistent with the model
+using physically grounded signal rather than latitude to distinguish PSRs from
+non-PSR sites. Calibration on the validation set gives ECE~$\approx 0.087$
+(previously $0.0905$ before the mitigation; we observed values from 0.087 to
+0.096 across repeated runs, since \texttt{model/run\_interpret.py} does not
+seed the validation split or the Monte Carlo Dropout passes) — mild
 overconfidence (ECE~$>0.05$) rather than the well-calibrated regime, which we
 report as an open item rather than round down to a more favourable figure.
 
@@ -458,6 +493,7 @@ EPF measurements. Future work should prioritise integrating additional Diviner E
 observations and LAMP count-rate maps to strengthen the high-confidence label pool.
 
 \subsection{Out-of-Distribution Generalisation}
+\label{sec:ood}
 
 To probe robustness beyond the random 80/20 split used for the headline metrics,
 we ran a polar-quadrant cross-validation: the model was trained on all data
@@ -466,27 +502,50 @@ convention already used for insolation zoning) and evaluated exclusively on the
 withheld quadrant, for both hemispheres independently (30 epochs each,
 \texttt{model/cross\_validate.py}).
 
-The result is a genuine negative finding. Training without any south-polar
-example and testing only on that quadrant (56.6\% positive) yields
-$F_1 = 0.000$ across all 30 epochs — the model detects no ice at all in a
-latitude range absent from training. The mirrored north-polar fold is unstable
-rather than reliably better: $F_1$ oscillates between $\approx 0.76$ and $0.000$
-across epochs rather than converging monotonically, and the best reported value
-($F_1 = 0.731$, recall $= 1.000$, precision $= 0.576$) corresponds to the
-epoch with lowest validation loss rather than a stable operating point.
+The initial result was a genuine negative finding. With \texttt{lat\_norm} present
+as one of the five \texttt{PhysicsEncoder} input features, training without any
+south-polar example and testing only on that quadrant (56.6\% positive) yielded
+$F_1 = 0.000$ across all 30 epochs — the model detected no ice at all in a
+latitude range absent from training. The mirrored north-polar fold was unstable
+rather than reliably better: $F_1$ oscillated between $\approx 0.76$ and $0.000$
+across epochs rather than converging monotonically. We attributed this to
+\texttt{lat\_norm} acting as a near-lookup signal — the model could shortcut to
+"this latitude band is polar $\Rightarrow$ ice" instead of learning the
+transferable subsurface-thermal and insolation physics that generalise to an
+unseen quadrant.
 
-We attribute this to \texttt{lat\_norm} being one of the five \texttt{PhysicsEncoder}
-input features: rather than learning purely transferable subsurface-thermal and
-insolation physics, the model likely relies in part on latitude as a
-near-lookup signal, which cannot extrapolate to a latitude band never observed
-during training. This does \emph{not} invalidate the headline results in
-Section~\ref{sec:results} — production training uses a random split that
-includes examples from every latitude band, so the deployed model has not
-been shown to fail in this way — but it is a real limitation of the model's
-extrapolation capability that should be disclosed rather than omitted. We
-report it here as an open problem for future work (e.g. ablating
-\texttt{lat\_norm}, or regularising explicitly against latitude-based
-shortcut learning) rather than resolving it prior to this submission.
+We tested the shortcut hypothesis directly: zeroing \texttt{lat\_norm} at every
+feature-construction site (training, inference, benchmark, validation —
+column retained at index 1 for input-shape compatibility with the exported ONNX
+graph, but always 0) forces the model to rely solely on insolation and the
+subsurface thermal profile, both already latitude-dependent through the physics
+of Section~\ref{sec:thermal-model} rather than through the raw coordinate. Retrained
+under this ablation, the withheld south-polar quadrant improved from
+$F_1 = 0.000$ to $F_1 = 0.808$ (recall $= 0.976$, precision $= 0.689$), and the
+north-polar fold improved from an unstable $F_1 = 0.731$ to a stable
+$F_1 = 0.767$ (recall $= 0.978$, precision $= 0.632$) that no longer collapses
+across epochs. (These figures move by $\approx \pm 0.01$ between independent
+retrainings, since both weight initialisation and the 80/20 split are
+unseeded — we report one representative run rather than an average across
+retrainings.) This confirms \texttt{lat\_norm} was the shortcut, not merely a
+correlate of one.
+
+This fix was adopted for the production model reported throughout this paper —
+the headline metrics in Section~\ref{sec:results} already reflect training
+without \texttt{lat\_norm}. The trade-off is a lower random-split $F_1$
+(0.997 $\rightarrow$ 0.792, precision 0.668, recall 0.973, val\_loss
+0.0109 $\rightarrow$ 0.337) than the earlier lookup-assisted model achieved,
+because latitude was informative for the in-distribution split even though it
+was also the shortcut that broke out-of-distribution generalisation. The
+14-site published-catalogue benchmark (Table~\ref{tab:benchmark}) is unaffected
+and remains 14/14 (100\%) after retraining, indicating the drop in the
+aggregate random-split metric is concentrated in ambiguous mid-confidence
+regions of the grid rather than in physically well-characterised sites. We
+consider generalisation to unseen polar regions — the regime lunar missions
+actually operate in, since no mission surveys every PSR during training — a
+more meaningful correctness criterion than the random-split aggregate, and
+report the trade honestly rather than reverting to the higher but
+non-generalising number.
 
 % ---------------------------------------------------------------
 \section{Conclusion}

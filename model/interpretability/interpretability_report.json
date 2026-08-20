@@ -5,15 +5,15 @@
       "lat": -85.5,
       "lon": -44.6,
       "expected": 1,
-      "prob": 0.9408,
+      "prob": 0.7761,
       "correct": true,
-      "attribution_method": "gradient",
+      "attribution_method": "shap",
       "physics_attribution": {
-        "insolacao": 0.0054,
-        "lat": 0.3841,
-        "sub_0.1m": 0.2642,
-        "sub_0.5m": 0.0996,
-        "sub_1.0m": 0.2467
+        "insolacao": 0.2647,
+        "lat": 0.0,
+        "sub_0.1m": 0.4755,
+        "sub_0.5m": 0.0047,
+        "sub_1.0m": 0.2551
       }
     },
     {
@@ -21,15 +21,15 @@
       "lat": -89.9,
       "lon": 0.0,
       "expected": 1,
-      "prob": 0.9558,
+      "prob": 0.924,
       "correct": true,
-      "attribution_method": "gradient",
+      "attribution_method": "shap",
       "physics_attribution": {
-        "insolacao": 0.002,
-        "lat": 0.3556,
-        "sub_0.1m": 0.3008,
-        "sub_0.5m": 0.2647,
-        "sub_1.0m": 0.0768
+        "insolacao": 0.8686,
+        "lat": 0.0,
+        "sub_0.1m": 0.0834,
+        "sub_0.5m": 0.0287,
+        "sub_1.0m": 0.0192
       }
     },
     {
@@ -37,15 +37,15 @@
       "lat": -87.5,
       "lon": -5.0,
       "expected": 1,
-      "prob": 0.9542,
+      "prob": 0.9158,
       "correct": true,
-      "attribution_method": "gradient",
+      "attribution_method": "shap",
       "physics_attribution": {
-        "insolacao": 0.0013,
-        "lat": 0.5998,
-        "sub_0.1m": 0.0844,
-        "sub_0.5m": 0.2785,
-        "sub_1.0m": 0.036
+        "insolacao": 0.6125,
+        "lat": 0.0,
+        "sub_0.1m": 0.1681,
+        "sub_0.5m": 0.1224,
+        "sub_1.0m": 0.0971
       }
     },
     {
@@ -53,15 +53,15 @@
       "lat": -85.2,
       "lon": 53.5,
       "expected": 1,
-      "prob": 0.8783,
+      "prob": 0.6352,
       "correct": true,
-      "attribution_method": "gradient",
+      "attribution_method": "shap",
       "physics_attribution": {
-        "insolacao": 0.049,
-        "lat": 0.096,
-        "sub_0.1m": 0.1896,
-        "sub_0.5m": 0.1592,
-        "sub_1.0m": 0.5062
+        "insolacao": 0.3457,
+        "lat": 0.0,
+        "sub_0.1m": 0.219,
+        "sub_0.5m": 0.2039,
+        "sub_1.0m": 0.2314
       }
     },
     {
@@ -69,15 +69,15 @@
       "lat": -79.4,
       "lon": -79.6,
       "expected": 1,
-      "prob": 0.0554,
+      "prob": 0.0224,
       "correct": false,
-      "attribution_method": "gradient",
+      "attribution_method": "shap",
       "physics_attribution": {
-        "insolacao": 0.1632,
-        "lat": 0.0081,
-        "sub_0.1m": 0.1779,
-        "sub_0.5m": 0.3784,
-        "sub_1.0m": 0.2725
+        "insolacao": 0.146,
+        "lat": 0.0,
+        "sub_0.1m": 0.1054,
+        "sub_0.5m": 0.7254,
+        "sub_1.0m": 0.0232
       }
     },
     {
@@ -85,15 +85,15 @@
       "lat": 86.0,
       "lon": -90.0,
       "expected": 1,
-      "prob": 0.9685,
+      "prob": 0.9786,
       "correct": true,
-      "attribution_method": "gradient",
+      "attribution_method": "shap",
       "physics_attribution": {
-        "insolacao": 0.0,
-        "lat": 0.6728,
-        "sub_0.1m": 0.1318,
-        "sub_0.5m": 0.142,
-        "sub_1.0m": 0.0534
+        "insolacao": 0.2888,
+        "lat": 0.0,
+        "sub_0.1m": 0.2205,
+        "sub_0.5m": 0.0471,
+        "sub_1.0m": 0.4436
       }
     },
     {
@@ -101,15 +101,15 @@
       "lat": 88.6,
       "lon": 33.0,
       "expected": 1,
-      "prob": 0.6951,
+      "prob": 0.7865,
       "correct": true,
-      "attribution_method": "gradient",
+      "attribution_method": "shap",
       "physics_attribution": {
-        "insolacao": 0.0967,
-        "lat": 0.0405,
-        "sub_0.1m": 0.5274,
-        "sub_0.5m": 0.282,
-        "sub_1.0m": 0.0534
+        "insolacao": 0.2566,
+        "lat": 0.0,
+        "sub_0.1m": 0.612,
+        "sub_0.5m": 0.002,
+        "sub_1.0m": 0.1295
       }
     },
     {
@@ -117,15 +117,15 @@
       "lat": 89.0,
       "lon": -90.0,
       "expected": 1,
-      "prob": 0.6936,
+      "prob": 0.7606,
       "correct": true,
-      "attribution_method": "gradient",
+      "attribution_method": "shap",
       "physics_attribution": {
-        "insolacao": 0.086,
-        "lat": 0.0966,
-        "sub_0.1m": 0.5013,
-        "sub_0.5m": 0.2161,
-        "sub_1.0m": 0.1
+        "insolacao": 0.266,
+        "lat": 0.0,
+        "sub_0.1m": 0.1877,
+        "sub_0.5m": 0.0309,
+        "sub_1.0m": 0.5154
       }
     },
     {
@@ -135,13 +135,13 @@
       "expected": 0,
       "prob": 0.0,
       "correct": true,
-      "attribution_method": "gradient",
+      "attribution_method": "shap",
       "physics_attribution": {
-        "insolacao": 0.096,
+        "insolacao": 0.3781,
         "lat": 0.0,
-        "sub_0.1m": 0.3959,
-        "sub_0.5m": 0.1714,
-        "sub_1.0m": 0.3367
+        "sub_0.1m": 0.1366,
+        "sub_0.5m": 0.2784,
+        "sub_1.0m": 0.2069
       }
     },
     {
@@ -149,15 +149,15 @@
       "lat": 0.7,
       "lon": 23.5,
       "expected": 0,
-      "prob": 0.0,
+      "prob": 0.0009,
       "correct": true,
-      "attribution_method": "gradient",
+      "attribution_method": "shap",
       "physics_attribution": {
-        "insolacao": 0.0853,
-        "lat": 0.0002,
-        "sub_0.1m": 0.3975,
-        "sub_0.5m": 0.1732,
-        "sub_1.0m": 0.3438
+        "insolacao": 0.4375,
+        "lat": 0.0,
+        "sub_0.1m": 0.3335,
+        "sub_0.5m": 0.0104,
+        "sub_1.0m": 0.2187
       }
     },
     {
@@ -165,15 +165,15 @@
       "lat": -43.3,
       "lon": -11.2,
       "expected": 0,
-      "prob": 0.0,
-      "correct": true,
-      "attribution_method": "gradient",
+      "prob": 0.5515,
+      "correct": false,
+      "attribution_method": "shap",
       "physics_attribution": {
-        "insolacao": 0.0069,
-        "lat": 0.0898,
-        "sub_0.1m": 0.1703,
-        "sub_0.5m": 0.3992,
-        "sub_1.0m": 0.3339
+        "insolacao": 0.5687,
+        "lat": 0.0,
+        "sub_0.1m": 0.013,
+        "sub_0.5m": 0.3009,
+        "sub_1.0m": 0.1174
       }
     },
     {
@@ -183,18 +183,18 @@
       "expected": 0,
       "prob": 0.0,
       "correct": true,
-      "attribution_method": "gradient",
+      "attribution_method": "shap",
       "physics_attribution": {
-        "insolacao": 0.1014,
-        "lat": 0.0071,
-        "sub_0.1m": 0.343,
-        "sub_0.5m": 0.187,
-        "sub_1.0m": 0.3616
+        "insolacao": 0.4037,
+        "lat": 0.0,
+        "sub_0.1m": 0.2394,
+        "sub_0.5m": 0.1262,
+        "sub_1.0m": 0.2307
       }
     }
   ],
   "calibration": {
-    "ece": 0.0905,
+    "ece": 0.0958,
     "n_samples": 3779
   }
 }

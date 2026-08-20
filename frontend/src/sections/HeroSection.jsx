@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
 import { useT } from "../i18n";
 
-const METRIC_VALUES = ["0.991", "14/14", "0.0294", "1.000"];
+// Atualizado 2026-08-20 pós-fix P7 (lat_norm zerada — ver README.md/paper.tex)
+const METRIC_VALUES = ["0.792", "14/14", "0.337", "0.973"];
 
 export default function HeroSection() {
   const { t } = useT();

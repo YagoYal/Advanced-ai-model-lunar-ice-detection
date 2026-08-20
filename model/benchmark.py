@@ -72,14 +72,15 @@ def rodar_benchmark() -> dict:
 
         insol = float(insol_map[i, j]) if insol_map is not None else 500.0
         insol_n = insol / 1361.0
-        lat_n   = lat   / 90.0
+        # lat_n zerada — ver P7 (model/cross_validate.py, 2026-08-20): latitude
+        # como feature direta era atalho de lookup, prejudicava generalização OOD.
 
         temp_sup  = temperatura_superficie(insol)
         sub_feats = features_subsolo(temp_sup, insolacao=insol)
 
         img    = np.zeros((64, 64), dtype=np.float32)
         img_t  = torch.tensor(img).unsqueeze(0).unsqueeze(0).to(DEVICE)
-        feat_t = torch.tensor([[insol_n, lat_n,
+        feat_t = torch.tensor([[insol_n, 0.0,
                                 float(sub_feats[0]),
                                 float(sub_feats[1]),
                                 float(sub_feats[2])]]).to(DEVICE)

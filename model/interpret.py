@@ -175,6 +175,13 @@ def shap_attribution(lat: float, insolacao: float = 0.0, temperatura: float = No
     wrapper.eval()
 
     bg = torch.rand(n_background, 5, dtype=torch.float32, device=DEVICE) * 0.5
+    # lat_norm (índice 1) é sempre zerada no treino (P7, 2026-08-20) — o peso
+    # dessa coluna no PhysicsEncoder nunca recebe gradiente (dL/dW = dL/dh * x,
+    # x=0 sempre) e fica no valor de inicialização aleatória. Um background com
+    # lat_norm ~ U(0, 0.5) mediria a sensibilidade a pesos não-treinados, não um
+    # sinal real do modelo — zera aqui também pra manter o baseline consistente
+    # com a distribuição de treino real.
+    bg[:, 1] = 0.0
     explainer = shap.GradientExplainer(wrapper, bg)
 
     env_t = features_fisicas(insolacao, lat, temp_superficie=temperatura)  # [1, 5]

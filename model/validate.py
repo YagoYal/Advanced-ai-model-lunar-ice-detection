@@ -109,7 +109,9 @@ def rodar_validacao(insolacao_map: np.ndarray = None) -> list:
         i, j = lat_lon_para_grid(lat, lon)
         insol      = float(insolacao_map[i, j])
         insol_norm = insol / 1361.0
-        lat_norm   = lat  / 90.0
+        # lat_norm zerada — ver P7 (model/cross_validate.py, 2026-08-20): latitude
+        # como feature direta era atalho de lookup, prejudicava generalização OOD.
+        lat_norm   = 0.0
         temp_sup   = float(temperatura_map[i, j]) if temperatura_map is not None else None
 
         img_t, feat_t = preparar_input(insol_norm, lat_norm, i, j, temp_superficie=temp_sup)

@@ -25,10 +25,25 @@ Uso:
     python -m model.cross_validate                  # 30 épocas por fold (padrão)
     CV_EPOCHS=10 python -m model.cross_validate      # mais rápido p/ checagem
 
+Mitigação (2026-08-20): hipótese confirmada — lat_norm (feature [1] de 5)
+funcionava como atalho de lookup, o modelo memorizava "essa faixa de latitude
+é polo" em vez de aprender a relação física insolação/perfil térmico → gelo.
+Testado zerando lat_norm (treino e validação) e comparando: F1 0.000→0.808
+(hold_sul), 0.731 instável→0.767 estável (hold_norte) — números variam
+±0.01 entre retreinos (inicialização/split aleatórios), não são bit-exact.
+**A mitigação virou o
+padrão de produção** — `data/data_pipeline/dataset.py` já zera lat_norm
+sempre, então rodar este script sem flag nenhuma já reflete o modelo real.
+CV_ABLATE_LAT=1 fica só como registro histórico do experimento A/B original
+(hoje é redundante — zera uma coluna que o dataset já zera):
+
+    python -m model.cross_validate                  # produção atual (lat_norm já zerada por padrão)
+    CV_ABLATE_LAT=1 python -m model.cross_validate   # idêntico ao acima, mantido por histórico
+
 Saída:
-    model/cross_validation/pesos_hold_sul.pth
-    model/cross_validation/pesos_hold_norte.pth
-    model/cross_validation/results.json
+    model/cross_validation/pesos_hold_sul[_ablate_lat].pth
+    model/cross_validation/pesos_hold_norte[_ablate_lat].pth
+    model/cross_validation/results[_ablate_lat].json
 """
 
 import json
@@ -52,6 +67,9 @@ BATCH_SIZE = 16
 MODE = os.getenv("DATA_MODE", "real")
 POLAR_THRESHOLD = 60.0  # graus — mesma convenção de generate_scientific_data.py
 OUT_DIR = "model/cross_validation"
+ABLATE_LAT = os.getenv("CV_ABLATE_LAT", "0") == "1"
+LAT_FEATURE_IDX = 1  # ver data/data_pipeline/dataset.py — ordem das 5 features
+SUFFIX = "_ablate_lat" if ABLATE_LAT else ""
 
 if DEVICE.type == "cuda":
     torch.cuda.set_per_process_memory_fraction(0.7)
@@ -76,13 +94,23 @@ def calcular_metricas(preds: torch.Tensor, labels: torch.Tensor) -> dict:
     }
 
 
+def _ablate(features: torch.Tensor) -> torch.Tensor:
+    """Zera lat_norm (feature [1]) se CV_ABLATE_LAT=1 — testa se o modelo
+    generaliza pro quadrante retido usando só insolação/temperatura
+    subsuperficial, sem a latitude como atalho direto."""
+    if ABLATE_LAT:
+        features = features.clone()
+        features[:, LAT_FEATURE_IDX] = 0.0
+    return features
+
+
 def avaliar(model, loader, criterion) -> tuple:
     model.eval()
     total_loss = 0.0
     all_preds, all_labels = [], []
     with torch.no_grad():
         for img, features, label, pos, conf in loader:
-            img, features = img.to(DEVICE), features.to(DEVICE)
+            img, features = img.to(DEVICE), _ablate(features).to(DEVICE)
             label = label.to(DEVICE).unsqueeze(1)
             pred = model(img, features)
             total_loss += criterion(pred, label).item()
@@ -130,13 +158,13 @@ def treinar_fold(nome: str, dataset: LunarDataset, train_idx: list, val_idx: lis
 
     melhor_val_loss = float("inf")
     melhor_metricas = None
-    weights_path = os.path.join(OUT_DIR, f"pesos_{nome}.pth")
+    weights_path = os.path.join(OUT_DIR, f"pesos_{nome}{SUFFIX}.pth")
 
     for epoch in range(EPOCHS):
         model.train()
         train_loss = 0.0
         for img, features, label, pos, conf in train_loader:
-            img, features = img.to(DEVICE), features.to(DEVICE)
+            img, features = img.to(DEVICE), _ablate(features).to(DEVICE)
             label = label.to(DEVICE).unsqueeze(1)
             pred = model(img, features)
             loss = criterion(pred, label)
@@ -170,7 +198,8 @@ def treinar_fold(nome: str, dataset: LunarDataset, train_idx: list, val_idx: lis
 
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
-    print(f"Device: {DEVICE} | Modo: {MODE} | Epochs/fold: {EPOCHS} | Limiar polar: {POLAR_THRESHOLD}°")
+    print(f"Device: {DEVICE} | Modo: {MODE} | Epochs/fold: {EPOCHS} | Limiar polar: {POLAR_THRESHOLD}° | "
+          f"Ablate lat_norm: {ABLATE_LAT}")
 
     dataset = LunarDataset(mode=MODE, augment=False)
     lats = np.array([dataset._posicoes[i][0] - 90 for i in range(len(dataset))])
@@ -193,12 +222,15 @@ def main():
               f"F1={m['f1']:.3f} recall={m['recall']:.3f} precision={m['precision']:.3f} "
               f"acc={m['acc']:.3f} (n_val={r['n_val']}, n_pos_val={r['n_pos_val']})")
 
-    out_path = os.path.join(OUT_DIR, "results.json")
+    out_path = os.path.join(OUT_DIR, f"results{SUFFIX}.json")
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump({
             "polar_threshold_deg": POLAR_THRESHOLD,
             "epochs_per_fold": EPOCHS,
-            "reference_random_split_f1": 0.991,  # benchmark de produção (roadmap.md Fase 2)
+            "ablate_lat_norm": ABLATE_LAT,
+            "reference_random_split_f1": 0.792,  # produção pós-fix P7 (README.md/paper.tex);
+                                                  # 0.997 era o número pré-fix, com lat_norm
+                                                  # como atalho de lookup (não generalizava OOD)
             "folds": resultados,
         }, f, indent=2, ensure_ascii=False)
     print(f"\nResultados salvos em: {out_path}")

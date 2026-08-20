@@ -44,13 +44,18 @@ def normalizar_features(insolacao: float, lat_graus: float,
     Features normalizadas para o modelo CNN (5 dims):
     [insol_norm, lat_norm, sub_0.1m_norm, sub_0.5m_norm, sub_1.0m_norm]
     temp_superficie usada para derivar perfil subsolo via physics.features_subsolo().
+
+    lat_norm é zerada (não removida — mantém shape [1,5]). P7 (2026-08-20):
+    latitude como feature direta era atalho de lookup, prejudicava
+    generalização pra quadrante polar nunca visto no treino. `lat_graus`
+    continua parâmetro da função (usado só por quem chama), não descartado
+    da assinatura — só não entra mais no vetor de features do modelo.
     """
     from model.physics import features_subsolo
     insol_n = insolacao / 1361.0
-    lat_n   = lat_graus / 90.0
     sub     = features_subsolo(float(temp_superficie)) if temp_superficie is not None \
               else np.zeros(3, dtype=np.float32)
-    return np.array([insol_n, lat_n, sub[0], sub[1], sub[2]], dtype=np.float32)
+    return np.array([insol_n, 0.0, sub[0], sub[1], sub[2]], dtype=np.float32)
 
 
 # ─── Pixel de imagem remota → Grade ───────────────────────────────────────────

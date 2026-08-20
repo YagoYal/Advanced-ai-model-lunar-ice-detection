@@ -125,10 +125,20 @@ class LunarDataset(Dataset):
 
         # Features físicas de INPUT (5 dimensões)
         # [0] insol_norm       — insolação normalizada por 1361 W/m²
-        # [1] lat_norm         — latitude normalizada por 90°
+        # [1] lat_norm         — ZERADA (ver P7 abaixo), coluna mantida por compat. de shape
         # [2] sub_0.1m_norm    — temperatura a 0.1m / 300K
         # [3] sub_0.5m_norm    — temperatura a 0.5m / 300K
         # [4] sub_1.0m_norm    — temperatura a 1.0m / 300K
+        #
+        # P7 (cross_validate.py, 2026-08-20): com lat_norm como feature direta, o
+        # modelo não generalizava pra um quadrante polar nunca visto no treino
+        # (F1=0.000 em hold_sul) — usava a latitude como atalho de lookup em vez
+        # de aprender a física real. Zerar essa coluna (mesma técnica validada em
+        # CV_ABLATE_LAT) resolveu: F1 0.000→~0.81 (hold_sul), 0.731 instável→~0.77
+        # estável (hold_norte) — números variam ±0.01 entre retreinos (não
+        # seedados). Insolação e perfil térmico subsuperficial já
+        # carregam a dependência de latitude fisicamente (Vasavada 2012), então a
+        # coluna raw é redundante e só ensinava o atalho.
         insol = float(self.insolacao[i, j])
         if self.subsolo_map is not None:
             # linspace(0,2,20): step=0.105m → idx1≈0.1m, idx5≈0.5m, idx10≈1.0m
@@ -139,7 +149,7 @@ class LunarDataset(Dataset):
             sub_01 = sub_05 = sub_10 = 0.0
 
         features = np.array(
-            [insol / 1361.0, lat / 90.0, sub_01, sub_05, sub_10],
+            [insol / 1361.0, 0.0, sub_01, sub_05, sub_10],
             dtype=np.float32
         )
 

@@ -145,6 +145,15 @@ Entrada física [insol_norm, lat_norm, sub_0.1m, sub_0.5m, sub_1.0m]  → Physic
 Concatenação 192D  → FusionHead (Linear 192→128→64→1) → sigmoid → P(gelo)
 ```
 
+> **`lat_norm` é zerada desde 2026-08-20** (coluna mantida por compatibilidade
+> de shape com o ONNX exportado, não removida). Cross-validation por quadrante
+> polar (P7) mostrou que com latitude como feature direta o modelo falhava
+> completamente (F1=0.000) num quadrante polar nunca visto no treino — usava a
+> latitude como atalho de lookup em vez de aprender a física real. Zerar
+> resolveu (F1 0.000→0.808 hold_sul, 0.731 instável→0.767 estável hold_norte),
+> à custa de F1 em split aleatório caindo de 0.997→0.792 (ver abaixo). Detalhes
+> em `model/cross_validate.py` e `model/cross_validation/results.json`.
+
 **Labels — sem circularidade:**
 
 | Fonte | Confiança | Positivos | Referência |
@@ -164,27 +173,31 @@ z_skin = 0.62 m   (√(κ·P/π), κ=4.7×10⁻⁷ m²/s, P=2.551×10⁶ s)
 Profundidades monitoradas: 0.1 m, 0.5 m, 1.0 m → features_subsolo
 ```
 
-**Resultados do treino (30 epochs, CPU):**
+**Resultados do treino (30 epochs, GPU, split aleatório 80/20 — atualizado 2026-08-20 pós-fix P7):**
 
 ```
-Dataset  : 58 624 exemplos  |  14 656 positivos (25%)
-val_loss : 0.0109
-F1       : 0.997
-Recall   : 1.000
-Acc      : 0.998
+Dataset  : 18 896 exemplos  |  4 724 positivos (25%)
+val_loss : 0.3370
+F1       : 0.792
+Recall   : 0.973
+Acc      : 0.874
 ```
+
+F1 caiu de 0.997 (com `lat_norm` como feature direta) para 0.792 — custo real
+de remover o atalho de lookup. Recall se manteve alto (0.973); a queda é
+principalmente em precision (mais falsos positivos). Ver nota acima sobre P7.
 
 **Benchmark (14 locais, 4 publicações):**
 
 ```
-Cabeus      (LCROSS 2009)    prob=0.983   GELO    OK
-Shackleton  (LAMP UV)        prob=1.000   GELO    OK
-Haworth     (Mini-RF CPR)    prob=1.000   GELO    OK
-Nobile      (Diviner cold)   prob=1.000   GELO    OK
-Amundsen    (PSR catalog)    prob=1.000   GELO    OK
-Hermite     (Paige 26K)      prob=1.000   GELO    OK
-Peary       (CPR norte)      prob=1.000   GELO    OK
-Whipple     (PSR norte)      prob=1.000   GELO    OK
+Cabeus      (LCROSS 2009)    prob=0.817   GELO    OK
+Shackleton  (LAMP UV)        prob=0.906   GELO    OK
+Haworth     (Mini-RF CPR)    prob=0.874   GELO    OK
+Nobile      (Diviner cold)   prob=0.793   GELO    OK
+Amundsen    (PSR catalog)    prob=0.782   GELO    OK
+Hermite     (Paige 26K)      prob=0.982   GELO    OK
+Peary       (CPR norte)      prob=0.855   GELO    OK
+Whipple     (PSR norte)      prob=0.982   GELO    OK
 Equador     (controle)       prob=0.000   SEM     OK
 Mare Tranq  (Apollo 11)      prob=0.000   SEM     OK
 Copernicus  (crater jovem)   prob=0.000   SEM     OK

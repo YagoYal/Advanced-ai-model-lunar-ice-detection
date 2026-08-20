@@ -1,0 +1,46 @@
+{
+  "polar_threshold_deg": 60.0,
+  "epochs_per_fold": 30,
+  "ablate_lat_norm": true,
+  "reference_random_split_f1": 0.997,
+  "folds": [
+    {
+      "fold": "hold_sul",
+      "n_train": 14248,
+      "n_pos_train": 2094,
+      "n_val": 4648,
+      "n_pos_val": 2630,
+      "melhor_val_loss": 1.0052084816792577,
+      "metricas_quadrante_retido": {
+        "acc": 0.7512908577919006,
+        "precision": 0.7052924633026123,
+        "recall": 0.9627376198768616,
+        "f1": 0.8141478896141052,
+        "tp": 2532,
+        "fp": 1058,
+        "fn": 98,
+        "tn": 960
+      },
+      "weights_path": "model/cross_validation\\pesos_hold_sul_ablate_lat.pth"
+    },
+    {
+      "fold": "hold_norte",
+      "n_train": 14690,
+      "n_pos_train": 2630,
+      "n_val": 4206,
+      "n_pos_val": 2094,
+      "melhor_val_loss": 0.8998067774473487,
+      "metricas_quadrante_retido": {
+        "acc": 0.7082738876342773,
+        "precision": 0.6353418827056885,
+        "recall": 0.9718242883682251,
+        "f1": 0.7683594822883606,
+        "tp": 2035,
+        "fp": 1168,
+        "fn": 59,
+        "tn": 944
+      },
+      "weights_path": "model/cross_validation\\pesos_hold_norte_ablate_lat.pth"
+    }
+  ]
+}

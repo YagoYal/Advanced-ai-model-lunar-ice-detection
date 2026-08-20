@@ -86,9 +86,15 @@ def features_fisicas(insolacao, lat, temp_superficie=None):
     [insol_norm, lat_norm, sub_0.1m_norm, sub_0.5m_norm, sub_1.0m_norm]
     Subsolo derivado de temp_superficie via difusão térmica (Vasavada 2012).
     temp_superficie não entra no modelo diretamente — só para calcular o perfil.
+
+    lat_norm é zerada (não removida — mantém shape [1,5] compatível com o ONNX
+    exportado). P7 (2026-08-20): com latitude como feature direta, o modelo
+    usava um atalho de lookup em vez da física real e não generalizava pra
+    PSRs num quadrante polar nunca visto no treino. `lat` continua sendo
+    parâmetro da função (usado só por quem chama, ex. logging), não descartado
+    da assinatura — só não entra mais no tensor do modelo.
     """
     insol_n = (insolacao or 0) / 1361.0
-    lat_n   = (lat or 0) / 90.0
 
     if temp_superficie is not None:
         sub = features_subsolo(float(temp_superficie))  # (3,)
@@ -96,7 +102,7 @@ def features_fisicas(insolacao, lat, temp_superficie=None):
         sub = np.zeros(3, dtype=np.float32)
 
     return torch.tensor(
-        [[insol_n, lat_n, sub[0], sub[1], sub[2]]],
+        [[insol_n, 0.0, sub[0], sub[1], sub[2]]],
         dtype=torch.float32,
     ).to(DEVICE)
 

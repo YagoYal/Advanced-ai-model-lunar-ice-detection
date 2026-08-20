@@ -10,13 +10,15 @@ const FORMULA_META = [
   { formula: "(μ, σ²) = f(x, N=30 passes)",               color: "#34d399" },
 ];
 
+// Atualizado 2026-08-20 pós-fix P7 (lat_norm zerada — ver README.md/paper.tex);
+// Exemplos/Positivos também sincronizados com o dataset real atual (18 896/4 724).
 const METRIC_VALUES = [
-  { value: "0.991",  color: "#38bdf8" },
-  { value: "0.0294", color: "#818cf8" },
-  { value: "1.000",  color: "#34d399" },
+  { value: "0.792",  color: "#38bdf8" },
+  { value: "0.337",  color: "#818cf8" },
+  { value: "0.973",  color: "#34d399" },
   { value: "14/14",  color: "#38bdf8" },
-  { value: "58.624", color: "#818cf8" },
-  { value: "14.700", color: "#34d399" },
+  { value: "18.896", color: "#818cf8" },
+  { value: "4.724",  color: "#34d399" },
   { value: "6",      color: "#38bdf8" },
   { value: "165.38", color: "#818cf8" },
 ];
