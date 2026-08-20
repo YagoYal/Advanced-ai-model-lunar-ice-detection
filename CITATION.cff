@@ -14,8 +14,11 @@ identifiers:
     value: "10.5281/zenodo.20014594"
     description: "Software archive (this repository)"
   - type: doi
+    value: "10.5281/zenodo.22032219"
+    description: "Companion paper preprint v2 (Zenodo, Aug 20 2026) — corrects an out-of-distribution generalisation failure (see paper Section \"Out-of-Distribution Generalisation\")"
+  - type: doi
     value: "10.5281/zenodo.21897740"
-    description: "Companion paper preprint (Zenodo, Aug 2026)"
+    description: "Companion paper preprint v1 (Zenodo, Aug 12 2026) — superseded by v2 above"
 abstract: >
   Lunar Ice Intelligence is a multimodal AI platform for detecting water ice
   in lunar permanently shadowed regions (PSRs). It combines a physics-informed

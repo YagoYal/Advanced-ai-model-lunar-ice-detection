@@ -5,7 +5,7 @@ Plataforma de detecção de gelo lunar por IA com dados reais do LRO (Lunar Reco
 **Demo ao vivo:** [lunar-ice.vercel.app](https://lunar-ice.vercel.app)
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20014594.svg)](https://doi.org/10.5281/zenodo.20014594)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21897740.svg)](https://doi.org/10.5281/zenodo.21897740)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22032219.svg)](https://doi.org/10.5281/zenodo.22032219)
 
 
 ---
@@ -310,7 +310,9 @@ Os volumes `./data` e `./model` são montados no container — pesos (`pesos.pth
 }
 ```
 
-Artigo (preprint):
+Artigo (preprint, v2 — corrige falha de generalização OOD, ver `paper.tex`
+seção "Out-of-Distribution Generalisation"; v1 original em
+[zenodo.21897740](https://doi.org/10.5281/zenodo.21897740)):
 
 ```bibtex
 @misc{almeida_da_silva_2026_paper,
@@ -318,9 +320,9 @@ Artigo (preprint):
   title     = {Lunar Ice Intelligence: AI-driven lunar water ice detection with physics-informed neural networks and autonomous rover navigation},
   year      = {2026},
   publisher = {Zenodo},
-  note      = {Preprint},
-  doi       = {10.5281/zenodo.21897740},
-  url       = {https://doi.org/10.5281/zenodo.21897740}
+  note      = {Preprint, v2},
+  doi       = {10.5281/zenodo.22032219},
+  url       = {https://doi.org/10.5281/zenodo.22032219}
 }
 ```
 
