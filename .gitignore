@@ -45,7 +45,24 @@ env/
 # =========================
 # 📊 DATA / MODELOS (IMPORTANTE)
 # =========================
-data/raw/
+# Ignora dados brutos, mas versiona os scripts .py que moram junto
+# (achado 2026-08-20: "data/raw/" sozinho ignorava a árvore inteira,
+# então download_diviner.py/parse_lamp.py/download_lroc_polar.py nunca
+# tinham entrado no git — corrigido re-incluindo diretório por diretório).
+data/raw/*
+!data/raw/lro/
+data/raw/lro/*
+!data/raw/lro/diviner/
+!data/raw/lro/lamp/
+!data/raw/lro/lroc/
+!data/raw/lro/mini_rf/
+data/raw/lro/diviner/*
+!data/raw/lro/diviner/*.py
+data/raw/lro/lamp/*
+!data/raw/lro/lamp/*.py
+data/raw/lro/lroc/*
+!data/raw/lro/lroc/*.py
+data/raw/lro/mini_rf/*
 data/external/
 data/cache/
 data/processed/lro/mock/

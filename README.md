@@ -12,7 +12,7 @@ Plataforma de detecção de gelo lunar por IA com dados reais do LRO (Lunar Reco
 
 ## O que o sistema faz
 
-- Baixa e processa dados reais de temperatura (Diviner), radar (Mini-RF CPR), imagens (LROC WAC) e UV (LAMP) da NASA via streaming seletivo — sem baixar arquivos de GBs inteiros
+- Baixa e processa dados reais de temperatura (Diviner), radar (Mini-RF CPR), imagens (LROC WAC) e UV (LAMP) da NASA via streaming seletivo em vez do GeoTIFF global (~3.3 GB) — exceção: o produto EPF do Diviner (ver tabela abaixo) baixa um CSV bruto de vários GB por cratera, reduzido depois a um `.npy` pequeno; o bruto é descartável após o processamento (não versionado, `data/raw/` é gitignored)
 - Treina uma CNN multimodal com labels baseadas em PSRs confirmados por instrumentos independentes (LCROSS, LAMP, Mini-RF, Diviner EPF) — sem circularidade
 - Serve uma API FastAPI onde o usuário clica num ponto do mapa lunar e recebe probabilidade de gelo
 - Um agente DQN navega o grid lunar autonomamente buscando regiões com maior probabilidade de gelo
@@ -75,7 +75,7 @@ lunar-ice-intelligence/
 │   │   ├── config.py                     Constantes e caminhos centralizados
 │   │   └── download.py                   Entry point: --diviner-epf --lamp --lroc-polar --tudo
 │   ├── raw/lro/
-│   │   ├── diviner/download_diviner.py   EPF de PSRs (~15 MB); Cabeus 549k medições cold trap
+│   │   ├── diviner/download_diviner.py   EPF de PSRs (bruto ~14 GB/cratera, descartável pós-processo); Cabeus 549k medições cold trap
 │   │   ├── lroc/download_lroc_polar.py   Patches polares Haworth/Nobile/Peary (PDS→COG→sintético)
 │   │   ├── mini_rf/                      CPR polar via HTTP range requests (59 MB)
 │   │   └── lamp/parse_lamp.py            LAMP FITS parser; COUNT_RATE; 2 arquivos ~10 MB
@@ -122,13 +122,13 @@ lunar-ice-intelligence/
 | Instrumento | Dado | Como baixado | Tamanho |
 |---|---|---|---|
 | Diviner LRO | Temperatura polar | vsicurl GeoTIFF, faixas \|lat\|≥60° | ~472 MB stream → 260 KB salvo |
-| Diviner EPF | Temperaturas PSR medidas diretamente | PDS download direto | ~15 MB |
+| Diviner EPF | Temperaturas PSR medidas diretamente | PDS download direto | **~2.7 GB comprimido / ~14 GB descompactado por cratera** (verificado 2026-08-20, Cabeus) — reduzido a poucos KB de `.npy` depois de processado; bruto seguro de apagar (`data/raw/` é gitignored, `download_diviner.py` rebaixa se precisar) |
 | LROC WAC | Patches imagem 64×64 | vsicurl USGS COG por PSR; sintético calibrado (Sato 2014) para polos | ~1 MB |
-| Mini-RF | CPR polar (radar gelo) | HTTP range requests, faixas polares | 59 MB |
+| Mini-RF | CPR polar (radar gelo) | HTTP range requests, faixas polares | 59 MB (`.bin` brutos, ~56 MB, também descartáveis depois de parseados nos `.npy`) |
 | LAMP | Assinatura UV de H₂O (FITS) | PDS download direto | ~10 MB |
 
 ```bash
-make download-all          # Diviner EPF + LAMP + LROC polares (~85 MB)
+make download-all          # Diviner EPF (~2.7 GB/cratera) + LAMP + LROC polares
 make download-lola         # Diviner GeoTIFF polar via vsicurl
 make download-lroc-polar   # Patches Haworth / Nobile / Peary
 ```
