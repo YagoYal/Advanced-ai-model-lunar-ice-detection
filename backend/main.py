@@ -165,6 +165,13 @@ def carregar_mapas():
             raise ValueError("insolacao.npy vazio")
 
     except Exception as e:
+        # Em produção com dado real, nunca servir ruído aleatório com HTTP 200:
+        # falhar no startup faz o health check do Fly reprovar e o deploy
+        # falhar de forma visível, em vez de publicar previsões sem sentido.
+        if ENV == "production" and MODE == "real":
+            raise RuntimeError(
+                f"Dados reais ausentes em produção ({DATA_DIR}): {e}"
+            ) from e
         logger.warning("Usando mapas simulados: %s", e)
         temp  = np.random.rand(180, 360).astype(np.float32)
         insol = (np.random.rand(180, 360) * 1000).astype(np.float32)
@@ -457,10 +464,11 @@ async def ws_simular(ws: WebSocket):
 
     except WebSocketDisconnect:
         pass
-    except Exception as e:
+    except Exception:
+        # Detalhe completo só no log; o cliente recebe mensagem genérica.
         logger.exception("Erro em /ws/simular")
         try:
-            await ws.send_json({"erro": str(e)})
+            await ws.send_json({"erro": "Erro interno na simulação."})
         except Exception:
             pass
 

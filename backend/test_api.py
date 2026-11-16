@@ -309,3 +309,41 @@ def test_ws_rate_limit_por_ip(producao):
     with client.websocket_connect("/ws/simular", headers={"Fly-Client-IP": "203.0.113.21"}) as ws:
         ws.send_json({"lat": 5, "lon": 5, "passos": 1})
         assert "passo" in ws.receive_json()
+
+
+# --- Fail-fast de dados e erro genérico no WS ---
+
+def test_producao_sem_dados_reais_falha_no_startup(monkeypatch, tmp_path):
+    # Produção + dado real ausente: nunca servir ruído aleatório com 200.
+    import backend.main as m
+    monkeypatch.setattr(m, "ENV", "production")
+    monkeypatch.setattr(m, "MODE", "real")
+    monkeypatch.setattr(m, "DATA_DIR", str(tmp_path))
+    with pytest.raises(RuntimeError, match="Dados reais ausentes"):
+        m.carregar_mapas()
+
+
+def test_dev_sem_dados_usa_fallback(monkeypatch, tmp_path):
+    import backend.main as m
+    monkeypatch.setattr(m, "ENV", "development")
+    monkeypatch.setattr(m, "DATA_DIR", str(tmp_path))
+    temp, insol, *_ = m.carregar_mapas()
+    assert temp.shape == (180, 360) and insol.shape == (180, 360)
+
+
+def test_ws_erro_interno_nao_vaza_detalhe(monkeypatch):
+    import backend.main as m
+
+    class PlannerQuebrado:
+        def __init__(self, *a, **k):
+            pass
+
+        def passo(self):
+            raise ValueError("/app/segredo/caminho_interno.npy")
+
+    monkeypatch.setattr(m, "Planner", PlannerQuebrado)
+    monkeypatch.setattr(m, "_ws_sessoes", collections.defaultdict(collections.deque))
+    with client.websocket_connect("/ws/simular") as ws:
+        ws.send_json({"lat": 5, "lon": 5, "passos": 2})
+        msg = ws.receive_json()
+    assert msg == {"erro": "Erro interno na simulação."}

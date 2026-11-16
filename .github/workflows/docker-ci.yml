@@ -38,6 +38,10 @@ jobs:
           npm ci
           npm audit --audit-level=high
 
+      - name: Frontend unit tests (vitest)
+        working-directory: frontend
+        run: npx vitest run
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 

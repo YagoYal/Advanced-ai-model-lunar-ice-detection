@@ -6,6 +6,36 @@ real evidence (a command run, a passing test, a commit), not an estimate.
 
 ---
 
+## 2026-11-16 — Audit follow-up: CI unblocked, hardening
+
+### Fixed
+
+- CI was red: `npm audit` found 5 new advisories (3 high) in build/test-only
+  packages (`vite`, `undici`, `source-map-js`, `@vitest/mocker`). Fixed with
+  `npm audit fix`. Because the audit step failed first, the tests, the
+  scientific benchmark and the smoke test had not run in CI.
+- The CI never ran the frontend tests; it now runs `vitest` after the audit.
+  Note: the patched `undici` (via `jsdom`) needs Node >= 22.19.
+
+### Security
+
+- In production with real data (`ENV=production`, `DATA_MODE=real`), missing
+  data files now abort startup. Before, the API silently served random-noise
+  maps with HTTP 200. Dev, CI and mock mode keep the fallback.
+- `/ws/simular` no longer sends exception text to the client (generic
+  message; full trace stays in the log).
+
+### Dependencies
+
+- Dependabot groups minor/patch updates into one PR per ecosystem per week;
+  majors stay separate.
+- Applied pending Dependabot bumps: pydantic 2.13.4, slowapi 0.1.10,
+  pytest 9.1.1, matplotlib>=3.11.1, @vitejs/plugin-react 6.1.1,
+  @testing-library/react 16.3.3, framer-motion 13.1.1 (vite/vitest already
+  newer via the audit fix). gunicorn 22→26 (major) left for separate review.
+
+---
+
 ## 2026-11-16 — Public site was returning 403 on every analysis
 
 ### Fixed
