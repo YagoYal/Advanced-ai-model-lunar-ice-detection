@@ -157,8 +157,9 @@ export default function AnaliseSection() {
     try {
       const pts = await fetchPolarGrid((done, total) => setPolarProgress({ done, total }));
       setPolarPoints(pts);
-    } catch {
-      // silently ignore — partial results already set
+      if (pts.length === 0) setErro(t.analise.errorBackend);
+    } catch (err) {
+      setErro(err?.message ?? t.analise.errorBackend);
     } finally {
       setLoadingPolar(false);
     }

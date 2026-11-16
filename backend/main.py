@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import time
+from collections import defaultdict, deque
 
 import numpy as np
 from fastapi import Depends, FastAPI, HTTPException, Request, Security, WebSocket, WebSocketDisconnect
@@ -54,7 +55,21 @@ logger = logging.getLogger(__name__)
 # APP + RATE LIMITER
 # =========================
 
-limiter = Limiter(key_func=get_remote_address)
+def _client_ip(request) -> str:
+    """IP real do cliente para rate limit.
+
+    Atrás do proxy do Fly, request.client.host é o IP do proxy, então todos os
+    usuários dividiriam o mesmo balde. Em produção usamos o header
+    Fly-Client-IP, que o proxy do Fly define. Fora do Fly, cai no IP do socket.
+    """
+    if os.getenv("ENV", "development") == "production":
+        ip = request.headers.get("fly-client-ip")
+        if ip:
+            return ip.strip()
+    return get_remote_address(request)
+
+
+limiter = Limiter(key_func=_client_ip)
 app = FastAPI(
     title="Lunar Ice Intelligence API",
     version="1.0.0",
@@ -257,7 +272,7 @@ def status():
 
 @app.post("/analisar")
 @limiter.limit("30/minute")
-def analisar(req: RequestAnalise, request: Request, _: None = Depends(verificar_api_key)):
+def analisar(req: RequestAnalise, request: Request):
     validar_posicao(req.lat, req.lon)
     t0 = time.perf_counter()
     try:
@@ -327,7 +342,7 @@ def analisar(req: RequestAnalise, request: Request, _: None = Depends(verificar_
 
 @app.post("/analisar_com_mapa")
 @limiter.limit("10/minute")
-def analisar_com_mapa(req: RequestAnalise, request: Request, _: None = Depends(verificar_api_key)):
+def analisar_com_mapa(req: RequestAnalise, request: Request):
     validar_posicao(req.lat, req.lon)
     raio = 2
     resultados = []
@@ -355,7 +370,7 @@ def analisar_com_mapa(req: RequestAnalise, request: Request, _: None = Depends(v
 
 @app.post("/simular")
 @limiter.limit("20/minute")
-def simular(req: RequestSimulacao, request: Request, _: None = Depends(verificar_api_key)):
+def simular(req: RequestSimulacao, request: Request):
     validar_posicao(req.lat, req.lon)
     rover = Rover([req.lat, req.lon])
     planner = Planner(rover, ambiente)
@@ -381,8 +396,32 @@ def simular(req: RequestSimulacao, request: Request, _: None = Depends(verificar
 # =========================
 
 
+# slowapi não cobre WebSocket — limite simples em memória por IP (1 worker).
+WS_MAX_SESSOES_POR_MIN = 10
+_ws_sessoes: dict[str, deque] = defaultdict(deque)
+
+
+def _ws_permitido(ip: str, agora: float | None = None) -> bool:
+    agora = time.monotonic() if agora is None else agora
+    fila = _ws_sessoes[ip]
+    while fila and agora - fila[0] > 60:
+        fila.popleft()
+    if len(fila) >= WS_MAX_SESSOES_POR_MIN:
+        return False
+    fila.append(agora)
+    return True
+
+
+# Endpoints usados pelo navegador (/analisar, /analisar_com_mapa, /simular,
+# /ws/simular) são públicos de propósito: qualquer key embutida no bundle JS
+# seria legível por qualquer visitante. Proteção = rate limit por IP + CORS +
+# validação de entrada. Só /predict (entrada arbitrária, uso programático)
+# exige X-API-Key.
 @app.websocket("/ws/simular")
 async def ws_simular(ws: WebSocket):
+    if not _ws_permitido(_client_ip(ws)):
+        await ws.close(code=1008)
+        return
     await ws.accept()
     try:
         payload = await ws.receive_json()

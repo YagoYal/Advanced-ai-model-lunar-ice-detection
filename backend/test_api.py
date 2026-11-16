@@ -1,3 +1,5 @@
+import collections
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -242,3 +244,68 @@ def test_ws_simular_passos_clampados():
                 break
             count += 1
         assert count == 100
+
+
+# --- Auth em modo produção ---
+# Endpoints do navegador são públicos (key em bundle JS não é segredo);
+# só /predict exige X-API-Key. ENV/API_KEY são lidos em tempo de chamada.
+
+@pytest.fixture
+def producao(monkeypatch):
+    import backend.main as m
+    monkeypatch.setattr(m, "ENV", "production")
+    monkeypatch.setattr(m, "API_KEY", "chave-teste")
+    monkeypatch.setenv("ENV", "production")
+    monkeypatch.setattr(m, "_ws_sessoes", collections.defaultdict(collections.deque))
+    return m
+
+
+def test_producao_analisar_publico_sem_key(producao):
+    r = client.post("/analisar", json={"lat": 10, "lon": 10},
+                    headers={"Fly-Client-IP": "203.0.113.1"})
+    assert r.status_code == 200
+
+
+def test_producao_simular_publico_sem_key(producao):
+    r = client.post("/simular", json={"lat": 5, "lon": 5, "passos": 2},
+                    headers={"Fly-Client-IP": "203.0.113.2"})
+    assert r.status_code == 200
+
+
+def test_producao_predict_exige_key(producao):
+    imagem = [[0.5] * 32 for _ in range(32)]
+    body = {"imagem": imagem, "insolacao": 500.0}
+    h = {"Fly-Client-IP": "203.0.113.3"}
+    assert client.post("/predict", json=body, headers=h).status_code == 403
+    assert client.post("/predict", json=body,
+                       headers={**h, "X-API-Key": "errada"}).status_code == 403
+    assert client.post("/predict", json=body,
+                       headers={**h, "X-API-Key": "chave-teste"}).status_code == 200
+
+
+def test_producao_rate_limit_por_fly_client_ip(producao):
+    # Baldes separados por IP real: esgotar um IP não afeta outro.
+    h1 = {"Fly-Client-IP": "203.0.113.10"}
+    codes = [client.post("/analisar_com_mapa", json={"lat": 10, "lon": 10}, headers=h1).status_code
+             for _ in range(11)]
+    assert codes[:10] == [200] * 10 and codes[10] == 429
+    r = client.post("/analisar_com_mapa", json={"lat": 10, "lon": 10},
+                    headers={"Fly-Client-IP": "203.0.113.11"})
+    assert r.status_code == 200
+
+
+def test_ws_rate_limit_por_ip(producao):
+    from starlette.websockets import WebSocketDisconnect
+    h = {"Fly-Client-IP": "203.0.113.20"}
+    for _ in range(producao.WS_MAX_SESSOES_POR_MIN):
+        with client.websocket_connect("/ws/simular", headers=h) as ws:
+            ws.send_json({"lat": 5, "lon": 5, "passos": 1})
+            while not ws.receive_json().get("done"):
+                pass
+    with pytest.raises(WebSocketDisconnect):
+        with client.websocket_connect("/ws/simular", headers=h) as ws:
+            ws.receive_json()
+    # outro IP continua liberado
+    with client.websocket_connect("/ws/simular", headers={"Fly-Client-IP": "203.0.113.21"}) as ws:
+        ws.send_json({"lat": 5, "lon": 5, "passos": 1})
+        assert "passo" in ws.receive_json()

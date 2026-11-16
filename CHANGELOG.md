@@ -6,6 +6,32 @@ real evidence (a command run, a passing test, a commit), not an estimate.
 
 ---
 
+## 2026-11-16 — Public site was returning 403 on every analysis
+
+### Fixed
+
+- `lunar-ice.vercel.app` returned **403 "Invalid or missing API key."** on
+  `/analisar`, `/analisar_com_mapa` and `/simular`. The production `API_KEY`
+  was rotated on 2026-08-20, but the Vercel bundle still embedded the old
+  `VITE_API_KEY`. The polar heatmap swallowed the error, so the map showed
+  nothing and no message.
+
+### Security
+
+- A key inside a public JS bundle is not a secret (it was extracted from the
+  live site with one `curl`). The browser-facing endpoints are now public by
+  design. `X-API-Key` is required only on `/predict` (arbitrary input,
+  programmatic use, never called by the site).
+- The rate limit now keys on the real client IP (`Fly-Client-IP` in
+  production). Before, every user behind the Fly proxy shared a single bucket.
+- `/ws/simular` had no rate limit at all; it now allows 10 sessions/min per IP.
+- The frontend no longer sends any API key. `.env.example` files warn that
+  `VITE_*` values are public.
+- Tests: 5 new production-mode tests in `backend/test_api.py` (public
+  endpoints, `/predict` key enforcement, per-IP buckets for HTTP and WS).
+
+---
+
 ## 2026-08-12 — Real deploy, academic publication, and dependency triage
 
 After the previous day's security audit fixed the code on `main` without ever

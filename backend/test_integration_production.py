@@ -107,18 +107,23 @@ def test_cors_allowed_origin():
 
 
 # =========================
-# Endpoints autenticados (X-API-Key obrigatório em produção)
+# Endpoints do navegador: públicos de propósito (key em bundle JS não é
+# segredo). Proteção = rate limit por IP + CORS. Só /predict exige key.
 # =========================
 
-@_needs_key
-def test_analisar_rejeita_sem_key():
+def test_analisar_publico_sem_key():
     r = _post("/analisar", json={"lat": 10, "lon": 10})  # sem header
+    assert r.status_code == 200
+
+
+def test_predict_rejeita_sem_key():
+    imagem = [[0.5] * 64 for _ in range(64)]
+    r = _post("/predict", json={"imagem": imagem, "insolacao": 500.0})
     assert r.status_code == 403
 
 
-@_needs_key
-def test_analisar_aceita_com_key():
-    r = _post("/analisar", json={"lat": 10, "lon": 10}, headers=AUTH_HEADERS)
+def test_analisar_campos_producao():
+    r = _post("/analisar", json={"lat": 10, "lon": 10})
     assert r.status_code == 200
     data = r.json()
     for campo in ("probabilidade_gelo", "variancia", "confianca", "temperatura",
@@ -128,24 +133,21 @@ def test_analisar_aceita_com_key():
     assert 0.0 <= data["probabilidade_gelo"] <= 1.0
 
 
-@_needs_key
 def test_analisar_psr_sul_shackleton_producao():
     # Shackleton -89.9° → lat_idx=0, lon_idx=180 — PSR confirmado (LAMP/Gladstone 2010)
-    r = _post("/analisar", json={"lat": 0, "lon": 180}, headers=AUTH_HEADERS)
+    r = _post("/analisar", json={"lat": 0, "lon": 180})
     assert r.status_code == 200
     assert r.json()["probabilidade_gelo"] >= 0.5, "PSR sul deve ter alta probabilidade em produção"
 
 
-@_needs_key
 def test_analisar_equador_baixa_prob_producao():
-    r = _post("/analisar", json={"lat": 90, "lon": 180}, headers=AUTH_HEADERS)
+    r = _post("/analisar", json={"lat": 90, "lon": 180})
     assert r.status_code == 200
     assert r.json()["probabilidade_gelo"] < 0.5
 
 
-@_needs_key
 def test_analisar_posicao_invalida_producao():
-    r = _post("/analisar", json={"lat": 9999, "lon": 9999}, headers=AUTH_HEADERS)
+    r = _post("/analisar", json={"lat": 9999, "lon": 9999})
     assert r.status_code == 422
 
 

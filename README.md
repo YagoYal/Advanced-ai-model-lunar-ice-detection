@@ -261,8 +261,10 @@ make test-all       # ambos
 | Backend (FastAPI) | Fly.io (scale-to-zero, gru) | [lunar-ice-api.fly.dev](https://lunar-ice-api.fly.dev) |
 | Frontend (React) | Vercel (auto-deploy via GitHub) | [lunar-ice.vercel.app](https://lunar-ice.vercel.app) |
 
-Variáveis obrigatórias no Fly.io: `API_KEY`, `ALLOWED_ORIGINS` (secrets via `flyctl secrets set`).
-Variáveis obrigatórias no Vercel: `VITE_API_URL`, `VITE_API_KEY`. Root Directory: `frontend`.
+Variáveis obrigatórias no Fly.io: `API_KEY` (protege só o `/predict`), `ALLOWED_ORIGINS` (secrets via `flyctl secrets set`).
+Variáveis obrigatórias no Vercel: `VITE_API_URL`. Root Directory: `frontend`. Não defina `VITE_API_KEY`: toda `VITE_*` fica pública no bundle.
+
+Os endpoints usados pelo site (`/analisar`, `/analisar_com_mapa`, `/simular`, `/ws/simular`) são públicos e limitados por IP real (header `Fly-Client-IP`).
 
 **Docker (local):**
 ```bash

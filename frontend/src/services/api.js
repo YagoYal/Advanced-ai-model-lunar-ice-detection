@@ -6,8 +6,8 @@ if (!IS_DEV && API_URL.startsWith("http://")) {
   console.warn("[security] VITE_API_URL usa HTTP em produção — use HTTPS.");
 }
 
-const API_KEY = import.meta.env.VITE_API_KEY ?? "";
-const authHeaders = API_KEY ? { "X-API-Key": API_KEY } : {};
+// Sem API key no cliente: qualquer valor VITE_* vai para o bundle público.
+// Os endpoints usados aqui são públicos e protegidos por rate limit no backend.
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -39,7 +39,7 @@ export async function analisar(lat, lon, signal, onRetry) {
     `${API_URL}/analisar`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...authHeaders },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lat, lon }),
       signal,
     },
@@ -57,7 +57,7 @@ export async function simular(lat, lon, passos = 10, onRetry) {
     `${API_URL}/simular`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json", ...authHeaders },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ lat, lon, passos }),
     },
     onRetry,
@@ -160,7 +160,7 @@ export function wsSimular(lat, lon, passos, onStep, onDone, onError) {
 export async function analisarComMapa(lat, lon) {
   const res = await fetch(`${API_URL}/analisar_com_mapa`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ lat, lon }),
   });
   if (!res.ok) {
