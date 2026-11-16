@@ -1,4 +1,6 @@
 version: 2
+# Minor/patch agrupados em 1 PR por ecossistema por semana; majors
+# continuam em PRs separados para revisão individual.
 updates:
   # Backend — requirements.txt na raiz
   - package-ecosystem: "pip"
@@ -9,6 +11,9 @@ updates:
     labels:
       - "dependencies"
       - "backend"
+    groups:
+      backend-minor-patch:
+        update-types: ["minor", "patch"]
 
   # Frontend — package.json em frontend/
   - package-ecosystem: "npm"
@@ -19,6 +24,9 @@ updates:
     labels:
       - "dependencies"
       - "frontend"
+    groups:
+      frontend-minor-patch:
+        update-types: ["minor", "patch"]
 
   # GitHub Actions — workflows em .github/workflows/
   - package-ecosystem: "github-actions"
@@ -28,3 +36,6 @@ updates:
     labels:
       - "dependencies"
       - "ci"
+    groups:
+      actions:
+        patterns: ["*"]
