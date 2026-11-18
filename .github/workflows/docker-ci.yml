@@ -36,7 +36,9 @@ jobs:
         working-directory: frontend
         run: |
           npm ci
-          npm audit --audit-level=high
+          # Bloqueia qualquer high/critical fora de audit-allowlist.json; cada
+          # exceção tem data de revisão e o gate falha quando ela vence.
+          node scripts/audit-gate.mjs
 
       - name: Frontend unit tests (vitest)
         working-directory: frontend
