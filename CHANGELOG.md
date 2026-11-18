@@ -6,6 +6,28 @@ real evidence (a command run, a passing test, a commit), not an estimate.
 
 ---
 
+## 2026-11-18 — gunicorn 27 in production; CI audit gate with reviewed exceptions
+
+### Dependencies
+
+- gunicorn 22.0.0 → 27.0.1 (#34), deployed (Fly v13). The backend runs
+  `uvicorn.workers.UvicornWorker`, so HTTP/WebSocket parsing stays in uvicorn;
+  the stricter gunicorn HTTP parser and the eventlet removal do not apply.
+
+### CI
+
+- `main` went red again on GHSA-fc5q-39xc-vjpf (picomatch <= 4.0.7, ReDoS),
+  which has **no patched version**. It is dev/build-only (vite, vitest,
+  tinyglobby), the globs come from our own config, and
+  `npm audit --omit=dev` is clean.
+- The npm audit step now runs `frontend/scripts/audit-gate.mjs`: any
+  high/critical advisory blocks the build unless it is listed in
+  `frontend/audit-allowlist.json` with a reason and a `review_by` date. When
+  that date passes, the gate fails again so the exception is re-checked.
+  No new dependency.
+
+---
+
 ## 2026-11-16 — Audit follow-up: CI unblocked, hardening
 
 ### Fixed

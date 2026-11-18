@@ -1,0 +1,9 @@
+[
+  {
+    "id": "GHSA-fc5q-39xc-vjpf",
+    "package": "picomatch <=4.0.7",
+    "reason": "ReDoS only when an attacker supplies the glob pattern. picomatch is dev/build-only here (vite, vitest, tinyglobby) and every glob comes from our own config; `npm audit --omit=dev` is clean. No patched version exists yet.",
+    "added": "2026-11-18",
+    "review_by": "2026-12-18"
+  }
+]
