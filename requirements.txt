@@ -1,5 +1,5 @@
 setuptools>=84.0.0
-fastapi==0.162.6
+fastapi==0.163.1
 uvicorn[standard]==0.54.0
 numpy==2.5.4
 torch>=2.3.1
