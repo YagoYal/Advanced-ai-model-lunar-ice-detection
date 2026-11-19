@@ -45,8 +45,8 @@ make dev        # sobe servidores
 ```text
 lunar-ice-intelligence/
 ├── backend/
-│   ├── main.py               FastAPI + rate limiting + API key auth + security headers; AmbienteLunar via arrays numpy
-│   └── test_api.py           15 testes de integração (pytest + TestClient)
+│   ├── main.py               FastAPI + rate limiting por IP + security headers; AmbienteLunar via arrays numpy
+│   └── test_api.py           33 testes (pytest + TestClient)
 ├── model/
 │   ├── cnn.py                LunarCNN: CNNEncoder(64×64) + PhysicsEncoder(input_dim=5) + FusionHead
 │   ├── physics.py            Stefan-Boltzmann, perfil_subsolo T(z), insolacao_dinamica, features_subsolo
@@ -238,7 +238,7 @@ make demo-rl     # roda agente treinado e exibe trajetória
 
 **Resposta `/analisar` (8 campos):** `probabilidade_gelo`, `variancia`, `confianca`, `temperatura`, `temperatura_subsolo[3]`, `insolacao`, `insolacao_atual`, `fase_lunar`.
 
-**Autenticação:** header `X-API-Key` (opcional em dev). Segurança: CSP, X-Frame-Options, HSTS em produção.
+**Autenticação:** endpoints usados pelo site são públicos, com rate limit por IP; só `/predict` exige o header `X-API-Key` em produção. Segurança: CSP `frame-ancestors`, X-Frame-Options, HSTS em produção.
 
 ---
 
