@@ -6,6 +6,34 @@ real evidence (a command run, a passing test, a commit), not an estimate.
 
 ---
 
+## 2026-11-19 — Site security headers, bounded service-worker cache, cleanup
+
+### Security
+
+- `frontend/vercel.json` now sends `X-Content-Type-Options: nosniff`,
+  `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`,
+  `Referrer-Policy`, `Permissions-Policy` (camera, microphone, geolocation,
+  payment, usb off; clipboard, used by Share, untouched) and
+  `Cross-Origin-Opener-Policy`. Before, only HSTS was sent. A full CSP is
+  left for later, in report-only mode first.
+
+### Fixed
+
+- Service worker (`public/sw.js`, cache `lunar-ice-v2`): v1 cached every GET
+  cache-first, including every NASA tile visited, under a fixed cache name,
+  so the cache grew without limit in visitors' browsers. v2 only caches the
+  site's own `/assets/` (hashed) files, capped at 40 entries; cross-origin
+  requests (API, tiles) are no longer intercepted. The new cache name deletes
+  the old cache on activation.
+
+### Removed
+
+- `railway.json` and `Procfile` (Railway was cancelled in June 2026; the
+  backend runs on Fly.io). README no longer claims API-key auth on every
+  endpoint and has the current test count.
+
+---
+
 ## 2026-11-19 — Dead frontend code removed; picomatch exception dropped
 
 ### Removed
