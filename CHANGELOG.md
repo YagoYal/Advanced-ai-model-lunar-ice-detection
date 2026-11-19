@@ -6,6 +6,25 @@ real evidence (a command run, a passing test, a commit), not an estimate.
 
 ---
 
+## 2026-11-19 — Dead frontend code removed; picomatch exception dropped
+
+### Removed
+
+- `frontend/src/App.jsx` (old entry point, replaced by `LandingPage.jsx`),
+  `components/Heatmap.jsx` and `components/LunarMap.jsx`: 237 lines nothing
+  imported. The production bundle is byte-identical after the removal (same
+  `index-hjV6jWTp.js` hash as the live site), so nothing user-facing changes.
+- `leaflet.heat`: only `Heatmap.jsx` used it. Closes Dependabot #37 as
+  unnecessary. (The live polar heatmap uses react-leaflet `CircleMarker`.)
+
+### CI
+
+- GitHub withdrew GHSA-fc5q-39xc-vjpf (picomatch) on 2026-11-18, and
+  `npm audit` reports 0 vulnerabilities again. Its exception is removed;
+  `audit-allowlist.json` is now empty and the gate stays in place.
+
+---
+
 ## 2026-11-18 — gunicorn 27 in production; CI audit gate with reviewed exceptions
 
 ### Dependencies
