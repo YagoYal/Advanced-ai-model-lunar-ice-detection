@@ -61,6 +61,14 @@ jobs:
       - name: Test Python version
         run: docker run --rm lunar-backend python --version
 
+      # A imagem deve usar o torch só-CPU (sem GPU no Fly). Falha se o build
+      # de CUDA voltar, por exemplo por alguma dependência puxando o torch do PyPI.
+      - name: Check torch is CPU-only and report image size
+        run: |
+          docker run --rm lunar-backend python -c "import torch; print('torch', torch.__version__, 'cuda', torch.version.cuda); assert torch.version.cuda is None, 'torch com CUDA na imagem'"
+          echo "nvidia packages: $(docker run --rm lunar-backend sh -c "pip list 2>/dev/null | grep -ciE '^nvidia-' || true")"
+          docker image ls lunar-backend --format 'image size: {{.Size}}'
+
       - name: Run unit tests (mock data)
         run: |
           docker run --rm \
