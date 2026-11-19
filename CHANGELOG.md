@@ -10,7 +10,9 @@ real evidence (a command run, a passing test, a commit), not an estimate.
 
 ### Security
 
-- `frontend/vercel.json` now sends `X-Content-Type-Options: nosniff`,
+- The site now sends (configured in the root `vercel.json`; the first attempt
+  used `frontend/vercel.json`, which Vercel turned out not to read, so it was
+  deleted) `X-Content-Type-Options: nosniff`,
   `X-Frame-Options: DENY`, `Content-Security-Policy: frame-ancestors 'none'`,
   `Referrer-Policy`, `Permissions-Policy` (camera, microphone, geolocation,
   payment, usb off; clipboard, used by Share, untouched) and
