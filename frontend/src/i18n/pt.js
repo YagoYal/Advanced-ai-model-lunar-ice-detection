@@ -21,7 +21,7 @@ export default {
   sobre: {
     label: "Missão",
     title: "Sobre o Projeto",
-    desc: "Desenvolvido para detectar e mapear depósitos de gelo em regiões permanentemente sombreadas (PSRs) lunares, combinando instrumentos LRO da NASA com modelos físicos de condução térmica subsuperficial.",
+    desc: "Desenvolvido para detectar e mapear depósitos de gelo em regiões permanentemente sombreadas (PSRs) lunares, usando mapas sintéticos guiados pela física e por resultados do LRO da NASA, junto com modelos de condução térmica subsuperficial (uma Lua simulada, ainda sem entradas reais do LRO).",
     cards: [
       {
         title: "Protótipo",
@@ -108,7 +108,7 @@ export default {
     pipelineTitle: "Pipeline de Dados",
     pipelineAriaLabel: "Pipeline de dados",
     pipeline: [
-      "Raw LROC / Diviner / Mini-RF",
+      "Mapas sintéticos (modelados no Diviner / LOLA)",
       "Reprojeção → 1°/px (180×360)",
       "Features: [insol, lat, Tsub×3]",
       "Labels: PSR + EPF + CPR",

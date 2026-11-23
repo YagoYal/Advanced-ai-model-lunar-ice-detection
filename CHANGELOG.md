@@ -6,6 +6,28 @@ real evidence (a command run, a passing test, a commit), not an estimate.
 
 ---
 
+## 2026-11-23 — Data provenance: the model runs on a simulated Moon
+
+### Fixed (scientific disclosure)
+
+- The model inputs are synthetic, not LRO measurements. `temperatura.npy` and
+  `insolacao.npy` are byte-identical to the output of
+  `generate_scientific_data.py` (latitude-band formulas + seeded noise + cold,
+  dark spots at 11 catalogued PSRs); the 50 image patches are procedural and
+  assigned independently of location. The metadata already said "modeled",
+  but the paper and README said "real data".
+- Labels (4,724 positive pixels): catalogue disks around the same 11 PSRs
+  (2,139), Diviner EPF measurements near Cabeus (134) and a processed Mini-RF
+  CPR map (2,451) whose processing script is not in the repository.
+- Disclosed in `paper.tex` (abstract, data table caption, new *Data
+  Provenance* subsection), README (top note, data section) and the site
+  (description, data-pipeline step). No code, data or model changes.
+- Next (roadmap Phase 13): check whether real Diviner and LOLA global maps
+  are usable on a home PC, then redo the 110 K baseline and
+  leave-one-crater-out validation on real inputs.
+
+---
+
 ## 2026-11-23 — The 14/14 benchmark is an in-sample check, not validation
 
 ### Fixed (scientific wording)

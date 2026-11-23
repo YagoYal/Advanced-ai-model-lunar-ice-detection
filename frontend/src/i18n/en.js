@@ -21,7 +21,7 @@ export default {
   sobre: {
     label: "Mission",
     title: "About the Project",
-    desc: "Developed to detect and map ice deposits in permanently shadowed regions (PSRs) of the Moon, combining NASA's LRO instruments with physical models of subsurface thermal conduction.",
+    desc: "Developed to detect and map ice deposits in permanently shadowed regions (PSRs) of the Moon, using physics-based synthetic maps modelled on NASA LRO results, together with physical models of subsurface thermal conduction (a simulated Moon, not yet real LRO inputs).",
     cards: [
       {
         title: "Prototype",
@@ -108,7 +108,7 @@ export default {
     pipelineTitle: "Data Pipeline",
     pipelineAriaLabel: "Data pipeline",
     pipeline: [
-      "Raw LROC / Diviner / Mini-RF",
+      "Synthetic maps (modelled on Diviner / LOLA)",
       "Reprojection → 1°/px (180×360)",
       "Features: [insol, lat, Tsub×3]",
       "Labels: PSR + EPF + CPR",

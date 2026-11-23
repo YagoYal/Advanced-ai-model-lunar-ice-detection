@@ -62,11 +62,15 @@
 \begin{abstract}
 We present \textit{Lunar Ice Intelligence}, an open-source platform for detecting
 water ice in lunar permanently shadowed regions (PSRs) using physics-informed deep
-learning. The system integrates real data from four NASA Lunar Reconnaissance Orbiter
-(LRO) instruments — Diviner, Mini-RF, LROC WAC, and LAMP — with a multimodal neural
-network (LunarCNN) that couples a convolutional image encoder with a physics-based
-subsurface thermal encoder. Labels are derived exclusively from independent
-instrument confirmations, avoiding the circularity common in PSR-based training sets.
+learning. In its current form the model is trained and evaluated on a simulated
+Moon: the temperature, illumination and image inputs are synthetic maps
+parameterised from published Lunar Reconnaissance Orbiter (LRO) results (Diviner,
+LOLA, LROC WAC), not measured data, while labels combine published PSR catalogues,
+Diviner EPF measurements and a Mini-RF CPR map (Section~\ref{sec:provenance}). A
+multimodal neural network (LunarCNN) couples a convolutional image encoder with a
+physics-based subsurface thermal encoder. Labels are not obtained by thresholding
+model inputs, but the synthetic inputs place their cold, dark spots at the same
+catalogued PSRs used as labels, so part of the input--label agreement is built in.
 A Double Deep Q-Network (DQN) agent performs autonomous rover navigation, maximising
 ice probability while accounting for subsurface thermal state. On 14 catalogued locations
 drawn from four published datasets, the model classifies all 14 correctly (eight
@@ -147,7 +151,10 @@ pipeline modules to prevent label misalignment.
 
 \begin{table}[H]
 \centering
-\caption{LRO instrument data integrated in the pipeline.}
+\caption{LRO products downloaded by the pipeline. As of v1.3.0 none of them
+  is used as a model input (the inputs are synthetic, see
+  Section~\ref{sec:provenance}); Diviner EPF and Mini-RF CPR contribute to the
+  labels only.}
 \label{tab:data}
 \begin{tabular}{lllr}
 \toprule
@@ -166,6 +173,34 @@ Selective streaming avoids downloading full-resolution global mosaics
 (typically $>$10 GB). Only polar strips ($|\phi| \geq 60^\circ$) are retrieved
 from Diviner; LROC patches are fetched per-PSR via Cloud-Optimised GeoTIFF
 (COG) range requests against the USGS tile server.
+
+\subsection{Data Provenance}
+\label{sec:provenance}
+
+The maps the model actually reads are \emph{synthetic}. Verified against the
+generator code (\texttt{generate\_scientific\_data.py}), the production
+\texttt{temperatura.npy} and \texttt{insolacao.npy} are byte-identical to its
+output:
+\begin{itemize}
+  \item \textbf{Temperature} and \textbf{illumination} are latitude-band formulas
+    with Gaussian noise (fixed random seeds) plus cold, dark Gaussian spots placed
+    at 11 catalogued PSRs, with values taken from the literature
+    \citep{paige2010,mazarico2011}. The subsurface profile is computed from them
+    with the \citet{vasavada2012} model.
+  \item \textbf{Image patches} are 50 procedurally generated $64\times64$ patches
+    assigned to samples cyclically, independently of location, so the image
+    branch carries no geographic information.
+  \item \textbf{Labels} (4{,}724 positive pixels) combine disks around the same 11
+    catalogued PSRs (2{,}139 pixels), Diviner EPF cold-trap measurements near
+    Cabeus (134 pixels) and a processed Mini-RF CPR map (2{,}451 pixels) whose
+    processing script is not in the repository, so its provenance is not
+    reproducible.
+\end{itemize}
+Because inputs and labels are both anchored on the same catalogued sites, the
+reported metrics characterise the method on a simulated Moon; they are not
+evidence of ice detection in real LRO data. Replacing the synthetic inputs with
+real Diviner and LOLA products is the main open step. A Diviner polar grid
+downloaded by the pipeline exists but is not yet used.
 
 \subsection{Label Construction}
 
