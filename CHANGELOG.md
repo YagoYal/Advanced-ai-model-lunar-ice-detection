@@ -6,6 +6,27 @@ real evidence (a command run, a passing test, a commit), not an estimate.
 
 ---
 
+## 2026-11-23 — The 14/14 benchmark is an in-sample check, not validation
+
+### Fixed (scientific wording)
+
+- The eight PSR sites of the 14-site benchmark (Cabeus, Shackleton, Haworth,
+  Nobile, Amundsen, Hermite, Peary, Whipple) are exactly the centres of the
+  training labels in `generate_labels.py` (0.00° apart, checked with a
+  haversine script), and the six negatives are sunlit, warm terrain. The
+  14/14 therefore shows that the model fits its training sites; it does not
+  measure generalisation to new sites, although it had been presented as
+  validation.
+- Reworded everywhere it appeared: `paper.tex` (abstract, benchmark table
+  caption, Discussion, P7 section), README, the site (the metric is now
+  labelled "Training sites"), `model/benchmark.py` (docstring and output),
+  `roadmap.md` and `memory.md`. `roadmap.md` also still listed the pre-P7
+  metrics (F1 0.991); now F1 0.792 / recall 0.973 / val_loss 0.337.
+- No numbers changed and the model is untouched. Next steps (roadmap
+  Phase 13): a `T_max < 110 K` baseline and leave-one-crater-out validation.
+
+---
+
 ## 2026-11-19 — Site security headers, bounded service-worker cache, cleanup
 
 ### Security

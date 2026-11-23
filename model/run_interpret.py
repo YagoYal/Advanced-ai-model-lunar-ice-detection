@@ -47,7 +47,7 @@ def _dados_fisicos_reais(lat: float, lon: float) -> tuple[float, float]:
     insol = float(_INSOL_MAP[i, j])
     return insol, temperatura_superficie(insol)
 
-# PSRs confirmados + negativos — benchmark 14/14
+# PSRs confirmados + negativos — mesmos locais do benchmark (in-sample: os PSRs são centros dos rótulos de treino)
 LOCATIONS = [
     # Positivos
     {"name": "Cabeus",     "lat": -85.5, "lon": -44.6, "expected": 1},

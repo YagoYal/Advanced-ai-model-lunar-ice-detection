@@ -68,10 +68,11 @@ network (LunarCNN) that couples a convolutional image encoder with a physics-bas
 subsurface thermal encoder. Labels are derived exclusively from independent
 instrument confirmations, avoiding the circularity common in PSR-based training sets.
 A Double Deep Q-Network (DQN) agent performs autonomous rover navigation, maximising
-ice probability while accounting for subsurface thermal state. On a benchmark of 14
-catalogued locations drawn from four published datasets, the model achieves 100\%
-accuracy (14/14), with all six negative controls correctly rejected and all eight
-catalogued PSRs correctly detected. On the random 80/20 validation split
+ice probability while accounting for subsurface thermal state. On 14 catalogued locations
+drawn from four published datasets, the model classifies all 14 correctly (eight
+PSRs, six negative controls); because the eight PSRs are also the centres of the
+training labels, this is an in-sample sanity check, not a test of generalisation,
+which we assess separately with polar-quadrant hold-out cross-validation. On the random 80/20 validation split
 (F1 = 0.792, Recall = 0.973, val\_loss = 0.337 at 30 epochs), performance is
 lower than an earlier variant that included raw latitude as an input feature
 (F1 = 0.997) — deliberately: that variant used latitude as a lookup shortcut
@@ -329,7 +330,11 @@ Accuracy  & 0.874  \\
 \begin{table}[H]
 \centering
 \caption{Benchmark on 14 catalogued locations from four publications.
-  \checkmark~= correct prediction; $\times$~= incorrect.}
+  \checkmark~= correct prediction; $\times$~= incorrect. The eight PSR sites
+  coincide with the centres of the training labels (Table~\ref{tab:labels}), so this table
+  is an in-sample sanity check of the label pipeline and model, not evidence of
+  generalisation to unseen sites. The negative controls are sunlit, warm
+  terrain and are easy cases.}
 \label{tab:benchmark}
 \begin{tabular}{llccc}
 \toprule
@@ -477,9 +482,13 @@ container rebuilds.
 % ---------------------------------------------------------------
 \section{Discussion}
 
-The 100\% benchmark accuracy (14/14) reflects a physics-informed label pipeline
-free of circular construction rather than an aggregate figure to be taken at face
-value: two of the fourteen sites (Nobile, Amundsen) are the lowest-confidence PSRs
+The 14/14 benchmark result must not be read as generalisation: the eight PSR
+sites are the same locations used as centres of the training labels, and the
+negative controls are sunlit, warm terrain, so the benchmark only confirms that
+model and label pipeline agree on the training sites. Labels are not derived by
+thresholding model inputs, but evaluation on sites outside the label set, and a
+comparison against the standard $T_{\max} < 110$~K stability criterion, remain
+future work. Within that limit, the result is also fragile: two of the fourteen sites (Nobile, Amundsen) are the lowest-confidence PSRs
 in the catalogue (conf~$\leq 0.75$) and lack direct instrument confirmation beyond
 Diviner cold-trap modelling, and only classify correctly after the haversine label
 fix described in Section~\ref{sec:results} — a reminder that a perfect score on
@@ -544,10 +553,9 @@ without \texttt{lat\_norm}. The trade-off is a lower random-split $F_1$
 0.0109 $\rightarrow$ 0.337) than the earlier lookup-assisted model achieved,
 because latitude was informative for the in-distribution split even though it
 was also the shortcut that broke out-of-distribution generalisation. The
-14-site published-catalogue benchmark (Table~\ref{tab:benchmark}) is unaffected
-and remains 14/14 (100\%) after retraining, indicating the drop in the
-aggregate random-split metric is concentrated in ambiguous mid-confidence
-regions of the grid rather than in physically well-characterised sites. We
+14-site benchmark (Table~\ref{tab:benchmark}) remains 14/14 after retraining;
+since those sites are training-label centres, this only shows that the
+retrained model still fits the catalogued sites, not that it generalises. We
 consider generalisation to unseen polar regions — the regime lunar missions
 actually operate in, since no mission surveys every PSR during training — a
 more meaningful correctness criterion than the random-split aggregate, and

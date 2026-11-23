@@ -7,6 +7,12 @@ Fontes:
   Spudis et al. (2010) GRL — Mini-RF CPR detecção de gelo norte
   Colaprete et al. (2010) Science — LCROSS Cabeus confirmação direta
 
+ATENÇÃO: os 8 PSRs deste benchmark são os mesmos locais usados como centro
+dos rótulos de treino (data/data_pipeline/generate_labels.py, PSR_CONFIRMADOS),
+e os negativos são terrenos iluminados/quentes. Um 14/14 aqui é uma checagem
+in-sample (modelo e rótulos concordam nos locais de treino), NÃO evidência de
+generalização para locais novos.
+
 Execução:
   python -m model.benchmark
 """
@@ -118,6 +124,7 @@ def rodar_benchmark() -> dict:
 
     if n_ok == n_tot:
         print("Modelo passou em todos os locais catalogados.")
+        print("(Checagem in-sample: os PSRs são locais dos rótulos de treino; não mede generalização.)")
     elif n_ok >= n_tot * 0.8:
         print("Modelo bom — acima de 80% de acerto.")
     else:

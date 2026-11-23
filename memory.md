@@ -43,7 +43,7 @@ frontend/src/
 - Dataset: 58.624 ex | 14.656 positivos (25%) | val_loss=0.0294 | F1=0.991 | Recall=1.000
 - F1 tem discrepância não resolvida: README diz 0.991, paper.tex diz 0.997 —
   usar README como referência até decidir fonte de verdade ou retreinar
-- Benchmark 14 locais: **14/14 (100%)**, reconfirmado 2026-08-11 rodando o script
+- Benchmark 14 locais: **14/14 (100%)**, reconfirmado 2026-08-11 rodando o script; in-sample, porque os PSRs = centros dos rótulos de treino (achado de 2026-11-23)
 
 ## API /analisar (9 campos)
 probabilidade_gelo, variancia, confianca, temperatura, temperatura_subsolo[3], insolacao, insolacao_atual, fase_lunar, altitude_m

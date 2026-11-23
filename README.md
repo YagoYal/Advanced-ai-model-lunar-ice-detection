@@ -207,6 +207,14 @@ Mid-lat 40S (iluminado)      prob=0.000   SEM     OK
 Total: 14/14 corretos (100%) | PSRs: 8/8 | Negativos: 6/6
 ```
 
+> **Atenção ao ler este benchmark:** os 8 PSRs são os mesmos locais usados como
+> centro dos rótulos de treino, e os 6 negativos são terrenos iluminados e
+> quentes (casos fáceis). O 14/14 confirma que o modelo acerta os locais que
+> viu no treino; **não** mede a generalização para locais novos. A evidência de
+> generalização hoje é a cross-validation por quadrante polar (seção P7); a
+> validação em crateras fora do treino e a comparação com a regra dos 110 K
+> estão em andamento.
+
 ---
 
 ## Rover autônomo (DQN)

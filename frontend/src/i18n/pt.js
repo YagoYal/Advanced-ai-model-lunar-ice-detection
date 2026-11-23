@@ -16,7 +16,7 @@ export default {
     subtext: "LRO/NASA · Vasavada 2012 thermal model · DQN rover autonomy.",
     btnAnalyze: "Analisar Gelo",
     btnScience: "Ver Ciência",
-    validatedPSRs: "Benchmark",
+    validatedPSRs: "Sites de treino",
   },
   sobre: {
     label: "Missão",
@@ -25,7 +25,7 @@ export default {
     cards: [
       {
         title: "Protótipo",
-        desc: "CNN + physics encoder treinada em dados sintéticos LRO. Validação em 14 PSRs conhecidos. Baseline científico estabelecido.",
+        desc: "CNN + physics encoder treinada em dados sintéticos LRO. Conferida em 14 locais catalogados (os 8 PSRs também são locais dos rótulos de treino: é uma checagem, não um teste de generalização).",
       },
       {
         title: "Científico",
@@ -43,7 +43,7 @@ export default {
       },
       {
         label: "PSRs Confirmados",
-        desc: "14 regiões confirmadas por múltiplos instrumentos (LCROSS, LAMP, Diviner, Mini-RF) · Gelo estável <110K",
+        desc: "8 PSRs confirmados por instrumentos (LCROSS, LAMP, Diviner, Mini-RF) + 6 controles negativos · Gelo estável <110K",
       },
       {
         label: "Base Científica",
@@ -87,7 +87,7 @@ export default {
       { label: "F1 Score" },
       { label: "Val Loss" },
       { label: "Recall" },
-      { label: "Benchmark PSRs" },
+      { label: "Sites de treino" },
       { label: "Exemplos" },
       { label: "Positivos" },
       { label: "obs_dim" },
