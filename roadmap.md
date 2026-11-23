@@ -60,7 +60,7 @@
 
 ### Validação científica
 - [x] Benchmark em 14 PSRs conhecidos (LCROSS, LAMP, Diviner, Mini-RF)
-- [x] Acurácia: **14/14 (100%)**
+- [x] Acurácia: **14/14 (100%)**: checagem in-sample, porque os 8 PSRs são centros dos rótulos de treino (achado de 2026-11-23, ver Fase 13)
 - [x] `validate.py` + `benchmark.py` com saída `benchmark_resultados.npy`
 
 ---
@@ -357,9 +357,9 @@ foram desbloqueados nesta sessão:
 
 | Componente | Estado | Métrica |
 |---|---|---|
-| LunarCNN | Produção | F1=0.991 · Recall=1.000 · val_loss=0.0294 · BCE ponderada (pos_weight, não Focal Loss) |
+| LunarCNN | Produção | F1=0.792 · Recall=0.973 · val_loss=0.337 (pós-P7, lat_norm zerada) · BCE ponderada (pos_weight, não Focal Loss) |
 | ONNX | Produção (Fly.io) | opset 17 · dynamic batch · inferência determinística |
-| Validação PSR | Produção | **14/14 (100%)** |
+| Validação PSR | Produção | **14/14** in-sample (PSRs = locais dos rótulos de treino; não mede generalização) |
 | DQN Rover | Produção | 500 ep · PER SumTree · Double DQN · reward~165.38 · ice_max=1.000 |
 | Backend API | **Produção, deployado 2026-08-12** | FastAPI 0.141.1 + Starlette 1.6.0 · 6 endpoints REST + WebSocket /ws/simular · /v1/docs · Fly.io scale-to-zero · verificado via `/health`+`/analisar` (403 sem key, correto) — versão 6, CVEs de 2026-08-11 já em produção |
 | Frontend | Produção | React 18.3.1 · 8 seções · PT+EN · Cold start UX · PWA · Polar heatmap · Share URL · Live chart · 0 vulnerabilidades npm — majors (React 19, recharts 3, etc.) têm PR aberto pelo Dependabot, não revisados ainda |
