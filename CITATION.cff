@@ -11,8 +11,8 @@ date-released: 2026-11-23
 license: Apache-2.0
 identifiers:
   - type: doi
-    value: "10.5281/zenodo.20014594"
-    description: "Software archive (this repository)"
+    value: "10.5281/zenodo.20014593"
+    description: "Software archive, all versions (concept DOI; always resolves to the latest release)"
   - type: doi
     value: "10.5281/zenodo.22032219"
     description: "Companion paper preprint v2 (Zenodo, Aug 20 2026) — corrects an out-of-distribution generalisation failure (see paper Section \"Out-of-Distribution Generalisation\")"
