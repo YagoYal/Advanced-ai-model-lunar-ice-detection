@@ -452,20 +452,27 @@ been easy to mistake for a genuine finding about model behaviour.
 
 The platform consists of three layers:
 
-\paragraph{Backend (FastAPI).} Serves five endpoints with rate limiting (slowapi).
-The \texttt{/analisar} endpoint returns eight fields per query:
+\paragraph{Backend (FastAPI).} Serves five analysis endpoints
+(\texttt{/analisar}, \texttt{/analisar\_com\_mapa}, \texttt{/simular}, the
+\texttt{/ws/simular} WebSocket and \texttt{/predict}) with per-client-IP rate
+limiting (slowapi). The \texttt{/analisar} endpoint returns ten fields per query:
 \texttt{probabilidade\_gelo}, \texttt{variancia}, \texttt{confianca},
 \texttt{temperatura}, \texttt{temperatura\_subsolo[3]}, \texttt{insolacao},
-\texttt{insolacao\_atual}, \texttt{fase\_lunar}. Authentication uses
-\texttt{X-API-Key} headers with CSP and HSTS headers in production.
+\texttt{insolacao\_atual}, \texttt{fase\_lunar}, \texttt{altitude\_m} and
+\texttt{physics\_attribution}. The browser-facing endpoints are public and
+rate-limited; only \texttt{/predict}, which accepts arbitrary input, requires an
+\texttt{X-API-Key} header. HSTS and anti-framing headers are sent in production.
 
 \paragraph{Frontend (React + Leaflet).} A landing page with eight sections —
 including an interactive lunar map where the user clicks to trigger ice analysis —
 served via Vite at port 5173. Rover trajectories are drawn in real time as
 grid-to-degree converted polylines.
 
-\paragraph{Infrastructure.} Docker multi-stage build on \texttt{python:3.13-slim};
-GitHub Actions CI; data and model volumes persist across container rebuilds.
+\paragraph{Infrastructure.} Single-stage Docker image on
+\texttt{python:3.13-slim} with a CPU-only PyTorch build (no GPU is used at
+inference); GitHub Actions CI runs dependency audits, the unit tests and the
+real-data benchmark on every change; data and model volumes persist across
+container rebuilds.
 
 % ---------------------------------------------------------------
 \section{Discussion}
