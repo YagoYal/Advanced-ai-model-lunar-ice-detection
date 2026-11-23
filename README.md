@@ -4,7 +4,7 @@ Plataforma de detecção de gelo lunar por IA com dados reais do LRO (Lunar Reco
 
 **Demo ao vivo:** [lunar-ice.vercel.app](https://lunar-ice.vercel.app)
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20014594.svg)](https://doi.org/10.5281/zenodo.20014594)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20014593.svg)](https://doi.org/10.5281/zenodo.20014593)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22032219.svg)](https://doi.org/10.5281/zenodo.22032219)
 
 
@@ -307,10 +307,14 @@ Os volumes `./data` e `./model` são montados no container — pesos (`pesos.pth
   title     = {Lunar Ice Intelligence},
   year      = {2026},
   publisher = {Zenodo},
-  doi       = {10.5281/zenodo.20014594},
-  url       = {https://doi.org/10.5281/zenodo.20014594}
+  doi       = {10.5281/zenodo.20014593},
+  url       = {https://doi.org/10.5281/zenodo.20014593}
 }
 ```
+
+O DOI acima representa todas as versões do software e sempre aponta para o
+release mais recente. Para citar a versão exata usada num trabalho, use o DOI
+dessa versão, listado na página do Zenodo.
 
 Artigo (preprint, v2 — corrige falha de generalização OOD, ver `paper.tex`
 seção "Out-of-Distribution Generalisation"; v1 original em
