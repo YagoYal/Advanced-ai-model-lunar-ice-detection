@@ -1,6 +1,8 @@
 # Lunar Ice Intelligence
 
-Plataforma de detecção de gelo lunar por IA com dados reais do LRO (Lunar Reconnaissance Orbiter), navegação autônoma de rover via DQN e interface web interativa.
+Plataforma de detecção de gelo lunar por IA, treinada hoje sobre uma **Lua simulada** (mapas sintéticos guiados por resultados publicados do LRO), com navegação autônoma de rover via DQN e interface web interativa.
+
+> **Sobre os dados (leia antes):** as entradas do modelo (temperatura, insolação e imagens) são **sintéticas**: geradas por fórmulas e parâmetros da literatura do LRO, não medidas. Os "pontos frios" ficam nas mesmas crateras usadas como rótulo, então as métricas descrevem o método numa Lua simulada, não a detecção de gelo em dados reais. Os produtos reais do LRO listados abaixo são baixados, mas ainda não entram no modelo. Detalhes em `paper.tex`, seção *Data Provenance*.
 
 **Demo ao vivo:** [lunar-ice.vercel.app](https://lunar-ice.vercel.app)
 
@@ -12,8 +14,8 @@ Plataforma de detecção de gelo lunar por IA com dados reais do LRO (Lunar Reco
 
 ## O que o sistema faz
 
-- Baixa e processa dados reais de temperatura (Diviner), radar (Mini-RF CPR), imagens (LROC WAC) e UV (LAMP) da NASA via streaming seletivo em vez do GeoTIFF global (~3.3 GB) — exceção: o produto EPF do Diviner (ver tabela abaixo) baixa um CSV bruto de vários GB por cratera, reduzido depois a um `.npy` pequeno; o bruto é descartável após o processamento (não versionado, `data/raw/` é gitignored)
-- Treina uma CNN multimodal com labels baseadas em PSRs confirmados por instrumentos independentes (LCROSS, LAMP, Mini-RF, Diviner EPF) — sem circularidade
+- Baixa dados reais de temperatura (Diviner), radar (Mini-RF CPR), imagens (LROC WAC) e UV (LAMP) da NASA via streaming seletivo (hoje usados só nos rótulos ou ainda não usados; as entradas do modelo são sintéticas) em vez do GeoTIFF global (~3.3 GB) — exceção: o produto EPF do Diviner (ver tabela abaixo) baixa um CSV bruto de vários GB por cratera, reduzido depois a um `.npy` pequeno; o bruto é descartável após o processamento (não versionado, `data/raw/` é gitignored)
+- Treina uma CNN multimodal com labels baseadas em PSRs de catálogo, medições Diviner EPF e um mapa Mini-RF CPR. Os rótulos não são limiares das entradas, mas as entradas sintéticas colocam os pontos frios nas mesmas crateras dos rótulos (circularidade parcial)
 - Serve uma API FastAPI onde o usuário clica num ponto do mapa lunar e recebe probabilidade de gelo
 - Um agente DQN navega o grid lunar autonomamente buscando regiões com maior probabilidade de gelo
 - A trajetória do rover é desenhada em tempo real no mapa
@@ -117,7 +119,7 @@ lunar-ice-intelligence/
 
 ---
 
-## Dados reais integrados
+## Dados reais baixados (ainda não usados como entrada do modelo)
 
 | Instrumento | Dado | Como baixado | Tamanho |
 |---|---|---|---|
